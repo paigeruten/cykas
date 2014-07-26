@@ -1,21 +1,15 @@
 extern crate num;
 extern crate libc;
 
-use bitcoin::address_from_private_key;
-
 mod crypto;
-mod bitcoin;
+mod address;
+mod base58;
 
 fn bitcoin_address_test() {
-    let priv_key = crypto::rand::rand_bytes(32u);
-    let address = address_from_private_key(priv_key.as_slice());
-
-    for byte in priv_key.iter() {
-        print!("{:02x}", *byte);
-    }
-    println!("");
-    
-    println!("{}", address);
+    //let priv_key = vec!(0xffu8,0xff,0xfe,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff);
+    let priv_key = vec!(0u8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1);
+    let addr = address::Address::new(priv_key);
+    println!("{}", addr.to_string());
 }
 
 fn aes_test() {

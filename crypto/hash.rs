@@ -58,6 +58,13 @@ pub fn sha256(data: &[u8]) -> Vec<u8> {
     hash(SHA256, data)
 }
 
+pub fn double_sha256(data: &[u8]) -> Vec<u8> {
+    let first_hash = sha256(data);
+    let second_hash = sha256(first_hash.as_slice());
+
+    second_hash
+}
+
 pub fn ripemd160(data: &[u8]) -> Vec<u8> {
     hash(RIPEMD160, data)
 }

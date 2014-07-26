@@ -1,16 +1,12 @@
 // This is just a sketch!
 
+use address;
+
 use std::collections::HashMap;
-use std::rand::Rng;
-use std::rand;
-
-type PrivateKey = Vec<u8>;
-
-static PRIVATE_KEY_LENGTH: uint = 32u;
 
 struct Wallet {
     path: Path,
-    entries: HashMap<String, Vec<PrivateKey>>
+    entries: HashMap<String, Vec<Address>>
 }
 
 impl Wallet {

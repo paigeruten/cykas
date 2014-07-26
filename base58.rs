@@ -1,7 +1,5 @@
 use num::bigint::ToBigUint;
 use num::Integer;
-use crypto::ecdsa::derive_public_key;
-use crypto::hash::{sha256, ripemd160};
 
 static BASE58_ALPHABET: &'static str = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
@@ -40,17 +38,5 @@ pub fn to_base58(data: &[u8]) -> String {
     }
 
     result.as_slice().chars().rev().collect()
-}
-
-pub fn address_from_private_key(priv_key: &[u8]) -> String {
-    let pub_key = derive_public_key(priv_key);
-    let pub_key_sha = sha256(pub_key.as_slice());
-    let mut pub_key_sha_rmd = ripemd160(pub_key_sha.as_slice());
-    pub_key_sha_rmd.unshift(0x00);
-    let pub_key_sha_rmd_sha = sha256(pub_key_sha_rmd.as_slice());
-    let pub_key_sha_rmd_sha_sha = sha256(pub_key_sha_rmd_sha.as_slice());
-    let address_checksum = pub_key_sha_rmd_sha_sha.slice(0, 4);
-    pub_key_sha_rmd.push_all(address_checksum);
-    to_base58(pub_key_sha_rmd.as_slice())
 }
 
