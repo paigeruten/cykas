@@ -13,11 +13,15 @@ fn bitcoin_address_test() {
 }
 
 fn aes_test() {
+    let salt = crypto::rand::rand_bytes(16u);
+    let key = crypto::pkcs5::pbkdf2_hmac_sha1("jer14ea", salt.as_slice(), 4000u, 32u);
+    let iv = crypto::rand::rand_bytes(16u);
+
     let ciphertext = crypto::aes::aes256cbc(
         crypto::aes::Encrypt,
-        [1,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1],
-        vec!(1,2,3,4,5,6,7,8,9,0,1,2,3,4,5),
-        [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53]
+        key.as_slice(),
+        iv.as_slice(),
+        [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,57]
     );
 
     for byte in ciphertext.iter() {
@@ -27,8 +31,8 @@ fn aes_test() {
 
     let plaintext = crypto::aes::aes256cbc(
         crypto::aes::Decrypt,
-        [1,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1],
-        vec!(1,2,3,4,5,6,7,8,9,0,1,2,3,4,5),
+        key.as_slice(),
+        iv.as_slice(),
         ciphertext.as_slice()
     );
 
@@ -39,6 +43,6 @@ fn aes_test() {
 }
 
 fn main() {
-    bitcoin_address_test();
+    aes_test();
 }
 

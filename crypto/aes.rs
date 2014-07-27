@@ -24,7 +24,7 @@ pub enum Mode {
     Decrypt
 }
 
-pub fn aes256cbc(mode: Mode, key: &[u8], iv: Vec<u8>, data: &[u8]) -> Vec<u8> {
+pub fn aes256cbc(mode: Mode, key: &[u8], iv: &[u8], data: &[u8]) -> Vec<u8> {
     unsafe {
         let ctx = EVP_CIPHER_CTX_new();
         let evp = EVP_aes_256_cbc();
@@ -36,7 +36,7 @@ pub fn aes256cbc(mode: Mode, key: &[u8], iv: Vec<u8>, data: &[u8]) -> Vec<u8> {
         };
         assert_eq!(key.len(), keylen);
 
-        EVP_CipherInit(ctx, evp, key.as_ptr(), iv.as_ptr(), mode); // FIXME: This segfaults. Okay?
+        EVP_CipherInit(ctx, evp, key.as_ptr(), iv.as_ptr(), mode);
 
         let mut res = Vec::from_elem(data.len() + blocksize, 0u8);
         let mut reslen = (data.len() + blocksize) as u32;
