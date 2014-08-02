@@ -61,7 +61,7 @@ impl Address {
         let pub_key = crypto::ecdsa::derive_public_key(self.private_key.as_slice());
         let pub_key_hash = crypto::hash::sha256(pub_key.as_slice());
         let mut pub_key_rmd = crypto::hash::ripemd160(pub_key_hash.as_slice());
-        pub_key_rmd.unshift(0x00);
+        pub_key_rmd.insert(0, 0x00);
         let double_hash = crypto::hash::double_sha256(pub_key_rmd.as_slice());
         let address_checksum = double_hash.slice(0, 4);
         pub_key_rmd.push_all(address_checksum);
