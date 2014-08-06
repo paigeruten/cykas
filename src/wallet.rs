@@ -17,7 +17,7 @@ impl Wallet {
 
         Wallet { path: path, entries: HashMap::new() }
     }
-    
+
     pub fn load(path: Path) {
     }
 
@@ -33,33 +33,33 @@ impl Wallet {
             }
         }
     }
-    
+
     pub fn gen(&mut self, alias: &str) {
         let key_ring = self.entries.find_or_insert(String::from_str(alias), Vec::new());
         let mut rng = rand::task_rng();
         let mut new_key: PrivateKey = Vec::with_capacity(PRIVATE_KEY_LENGTH);
-        
+
         for _ in range(0, PRIVATE_KEY_LENGTH) {
             new_key.push(rng.gen::<u8>());
         }
-        
+
         key_ring.push(new_key);
     }
-    
+
     pub fn gen_multiple(&mut self, alias: &str, n: uint) {
         for _ in range(0, n) {
             self.gen(alias);
         }
     }
-    
+
     pub fn move_key(&mut self, alias: &str, idx: uint, new_alias: &str) {
     }
-    
+
     pub fn merge_aliases(&mut self, alias1: &str, alias2: &str, new_alias: &str) {
     }
-    
+
     pub fn rename_alias(&mut self, old_alias: &str, new_alias: &str) {
-    
+
     }
 }
 
