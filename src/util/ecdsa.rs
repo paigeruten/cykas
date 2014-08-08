@@ -51,9 +51,9 @@ extern {
     fn BN_CTX_free(c: *mut BN_CTX);
 }
 
-// Take a 256-bit Bitcoin private key, and derive the 65-byte uncompressed
+// Takes a 256-bit Bitcoin private key, and derives the 65-byte uncompressed
 // public key from it. Assumes the private key is valid, i.e. is 32 bytes long
-// and falls within the range defined in `address.rs`.
+// and falls within the range defined in `private_key.rs`.
 pub fn derive_public_key(private_key: &[u8]) -> Vec<u8> {
     assert!(private_key.len() == 32u);
     unsafe {

@@ -1,13 +1,18 @@
 extern crate openssl;
 extern crate num;
 extern crate libc;
+extern crate serialize;
 
-use address::Address;
+use serialize::hex::{ToHex, FromHex};
 
-mod ecdsa;
-mod private_key;
-mod address;
-mod base58;
+use protocol::private_key::PrivateKey;
+use protocol::public_key::PublicKey;
+use protocol::address::Address;
+
+pub mod protocol;
+pub mod util;
+//mod wallet_address;
+//mod wallet;
 
 #[allow(dead_code)]
 fn aes_test() {
@@ -42,7 +47,15 @@ fn aes_test() {
 
 #[allow(dead_code)]
 fn main() {
-    let addr = Address::new_random();
-    println!("{}", addr.get_public_address());
+    let private_key = PrivateKey::generate();
+    //let raw_wif = util::base58::decode("5KXHHtBba1Y6eWdxu3nXSxKN8UpW8CWMpCKUa8U51naNQA1Q6q9");
+    //let private_key = PrivateKey::from_wif(raw_wif.as_slice()).unwrap();
+    let to_wif = private_key.to_wif();
+    let public_key = PublicKey::from_private_key(&private_key);
+    let address = Address::from_public_key(&public_key);
+    println!("priv: {}", private_key.get_data().to_hex());
+    println!("pwif: {}", util::base58::encode(to_wif.as_slice()));
+    println!("publ: {}", public_key.get_data().to_hex());
+    println!("addr: {}", util::base58::encode(address.get_data()));
 }
 

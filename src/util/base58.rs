@@ -2,6 +2,7 @@ use std::num::Zero;
 use num::bigint::{BigUint,ToBigUint};
 use num::Integer;
 
+// Bitcoin's base-58 alphabet.
 static ALPHABET: &'static str = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 // Converts `data` to a base-58 string, that can be decoded by decode().
@@ -9,14 +10,7 @@ pub fn encode(data: &[u8]) -> String {
     // Count the number of zero bytes at the beginning of the data. In the
     // Bitcoin base-58 format, leading zero bytes are treated separately. After
     // the real base-58 conversion, they will be added back as '1' characters.
-    let mut num_zeroes = 0u;
-    for byte in data.iter() {
-        if *byte == 0 {
-            num_zeroes += 1;
-        } else {
-            break;
-        }
-    }
+    let num_zeroes = data.iter().take_while(|byte| byte.is_zero()).count();
 
     // Disregard the leading zero bytes for the actual base-58 conversion.
     let data = data.slice_from(num_zeroes);
@@ -57,14 +51,7 @@ pub fn decode(string: &str) -> Vec<u8> {
     // leading zero (which appears as '1' in base-58) represents one zero-byte
     // at the beginning of the decoded data, so we treat these separately
     // before beginning the base-58 conversion.
-    let mut num_zeroes = 0u;
-    for digit in string.chars() {
-        if digit == '1' {
-            num_zeroes += 1;
-        } else {
-            break;
-        }
-    }
+    let num_zeroes = string.chars().take_while(|ch| *ch == '1').count();
 
     // Reslice the string to disregard the zeroes we just made a note of.
     let string = string.slice_chars(num_zeroes, string.len());
