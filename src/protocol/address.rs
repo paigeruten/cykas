@@ -64,6 +64,7 @@ impl Address {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use serialize::hex::FromHex;
 

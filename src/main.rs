@@ -3,18 +3,13 @@ extern crate num;
 extern crate libc;
 extern crate serialize;
 
-use serialize::hex::{ToHex};
-
-use protocol::private_key::PrivateKey;
-use protocol::public_key::PublicKey;
-use protocol::address::Address;
+use wallet::Wallet;
 
 pub mod protocol;
 pub mod util;
-//mod wallet_address;
-//mod wallet;
+pub mod wallet;
 
-#[allow(dead_code)]
+/*
 fn aes_test() {
     let salt = openssl::crypto::rand::rand_bytes(16u);
     let key = openssl::crypto::pkcs5::pbkdf2_hmac_sha1("asdf", salt.as_slice(), 4000u, 32u);
@@ -44,18 +39,12 @@ fn aes_test() {
     }
     println!("");
 }
+*/
 
-#[allow(dead_code)]
 fn main() {
-    let private_key = PrivateKey::generate();
-    //let raw_wif = util::base58::decode("5KXHHtBba1Y6eWdxu3nXSxKN8UpW8CWMpCKUa8U51naNQA1Q6q9");
-    //let private_key = PrivateKey::from_wif(raw_wif.as_slice()).unwrap();
-    let to_wif = private_key.to_wif();
-    let public_key = PublicKey::from_private_key(&private_key);
-    let address = Address::from_public_key(&public_key);
-    println!("priv: {}", private_key.get_data().to_hex());
-    println!("pwif: {}", util::base58::encode(to_wif.as_slice()));
-    println!("publ: {}", public_key.get_data().to_hex());
-    println!("addr: {}", util::base58::encode(address.get_data()));
+    let mut wallet = Wallet::new(Path::new("WALLET.test"));
+    wallet.gen("main");
+    wallet.gen_multiple("change", 5);
+    wallet.save();
 }
 

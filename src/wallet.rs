@@ -1,12 +1,11 @@
-// This is just a sketch!
-
-use address;
-
 use std::collections::HashMap;
 
-struct Wallet {
+use util;
+use protocol::private_key::PrivateKey;
+
+pub struct Wallet {
     path: Path,
-    entries: HashMap<String, Vec<WalletAddress>>
+    entries: HashMap<String, Vec<PrivateKey>>
 }
 
 impl Wallet {
@@ -25,24 +24,14 @@ impl Wallet {
         for (alias, keys) in self.entries.iter() {
             println!("{}:", alias);
             for key in keys.iter() {
-                print!("  ");
-                for byte in key.iter() {
-                    print!("{:02x}", *byte);
-                }
-                println!("");
+                println!("  {}", util::base58::encode(key.to_wif().as_slice()));
             }
         }
     }
 
     pub fn gen(&mut self, alias: &str) {
         let key_ring = self.entries.find_or_insert(String::from_str(alias), Vec::new());
-        let mut rng = rand::task_rng();
-        let mut new_key: PrivateKey = Vec::with_capacity(PRIVATE_KEY_LENGTH);
-
-        for _ in range(0, PRIVATE_KEY_LENGTH) {
-            new_key.push(rng.gen::<u8>());
-        }
-
+        let new_key = PrivateKey::generate();
         key_ring.push(new_key);
     }
 
@@ -61,12 +50,5 @@ impl Wallet {
     pub fn rename_alias(&mut self, old_alias: &str, new_alias: &str) {
 
     }
-}
-
-fn main() {
-    let mut wallet = Wallet::new(Path::new("WALLET.cykas"));
-    wallet.gen("test");
-    wallet.gen_multiple("change", 5);
-    wallet.save();
 }
 
