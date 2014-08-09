@@ -24,7 +24,7 @@ impl Wallet {
         for (alias, keys) in self.entries.iter() {
             println!("{}:", alias);
             for key in keys.iter() {
-                println!("  {}", util::base58::encode(key.to_wif().as_slice()));
+                println!("  {}", util::base58::encode(key.to_address().get_data()));
             }
         }
     }
