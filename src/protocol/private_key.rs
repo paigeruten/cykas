@@ -119,61 +119,98 @@ impl PrivateKey {
     }
 }
 
-/*#[cfg(test)]
+#[cfg(test)]
 mod tests {
+    use serialize::hex::FromHex;
+
+    use util;
+
     use super::{LENGTH, ZERO, MAX};
-    use super::{generate, is_valid, derive_public_address};
+    use super::PrivateKey;
 
-    static TINY_KEY: &'static [u8] = &[0x80,0x80,0x80,0x80];
-    static INVALID_PRIVATE_KEY: &'static [u8] =
-        &[0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-          0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00];
-    static VALID_PRIVATE_KEY: &'static [u8] =
-        &[0xf7,0x47,0x65,0x32,0xfe,0x57,0x53,0xeb,0xcb,0xea,0x26,0xfe,0x02,0xff,0xf1,0x8b,
-          0xf0,0x15,0x54,0x6f,0x85,0xca,0xf7,0x8a,0xc8,0xd5,0x99,0x54,0x7f,0x7d,0x3a,0xac];
-    static VALID_PRIVATE_KEY_ADDRESS: &'static str = "19gL5Rq1uc5yspAtbM7NyDs1godKnGHMar";
+    #[test]
+    fn test_new() {
+        let data = "CFE1B4C8DDA7EBF5FCACC4086BD9530F1C2201AE5A7D1DEF090D911CF28E5C5F";
+        let data = data.from_hex().unwrap();
+        let private_key = PrivateKey::new(data.as_slice());
+        assert!(private_key.is_some());
+        assert_eq!(private_key.unwrap().get_data(), data.as_slice());
+    }
 
+    #[test]
+    fn test_new_max() {
+        let private_key = PrivateKey::new(MAX);
+        assert!(private_key.is_some());
+    }
+
+    #[test]
+    fn test_new_invalid_zero_key() {
+        let private_key = PrivateKey::new(ZERO);
+        assert!(private_key.is_none());
+    }
+
+    #[test]
+    fn test_new_invalid_range() {
+        let data = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000000000000000000000000000";
+        let data = data.from_hex().unwrap();
+        let private_key = PrivateKey::new(data.as_slice());
+        assert!(private_key.is_none());
+    }
+
+    #[test]
+    fn test_from_wif() {
+        let data = util::base58::decode("5HqRSKD8yqyRjm1eaEmeAJcgs2iY5ywf7FD1xEMetNAZcUpqKAr");
+        let private_key = PrivateKey::from_wif(data.as_slice());
+        assert!(private_key.is_some());
+        assert_eq!(private_key.unwrap().get_data(), data.slice(1, 33));
+    }
+
+    #[test]
+    fn test_from_wif_invalid_checksum() {
+        let data = util::base58::decode("5J5gwp44QZSNJbaHS4f5w2Wisrt8bHHdmB7rQetgsH7tghvVPY8");
+        let private_key = PrivateKey::from_wif(data.as_slice());
+        assert!(private_key.is_none());
+    }
 
     #[test]
     fn test_generate() {
-        let key = generate();
-        assert!(key.len() == LENGTH);
+        let private_key = PrivateKey::generate();
+        assert!(private_key.get_data().len() == LENGTH);
 
-        // If the same address is generated again, then there's a serious
-        // problem. Even if it can happen in theory.
-        let key2 = generate();
-        assert!(key != key2);
+        let another_key = PrivateKey::generate();
+        assert!(private_key.get_data() != another_key.get_data());
     }
 
     #[test]
-    fn test_zero_key_should_be_invalid() {
-        assert!(!is_valid(ZERO));
+    fn test_to_wif() {
+        let data = "CFE1B4C8DDA7EBF5FCACC4086BD9530F1C2201AE5A7D1DEF090D911CF28E5C5F";
+        let data = data.from_hex().unwrap();
+        let private_key = PrivateKey::new(data.as_slice()).unwrap();
+        let wif = private_key.to_wif();
+        let wif_base58 = util::base58::encode(wif.as_slice());
+        assert_eq!(wif_base58.as_slice(), "5KPqe3y95higsGQaWN6TQPtv2BQ2X1SqL87AmVAuiz811uCQRYQ");
     }
 
     #[test]
-    fn test_max_key_should_be_valid() {
-        assert!(is_valid(MAX));
+    fn test_to_public_key() {
+        let data = "F91BCBB19F3A8A03204B70B08DB2950716C565E362912C5B368CC171FF578B9F";
+        let data = data.from_hex().unwrap();
+        let private_key = PrivateKey::new(data.as_slice()).unwrap();
+        let public_key = private_key.to_public_key();
+        let expected = "04F9C985FBFD543097E0870B36C98CE627BBC4EAD4668040214D53E96DB341A2A0\
+                          A55DBBFF18F4422E90E038BECECA97461C4076FA33408D568154A66AC8FA702F";
+        let expected = expected.from_hex().unwrap();
+        assert_eq!(public_key.get_data(), expected.as_slice());
     }
 
     #[test]
-    fn test_valid_key_should_be_valid() {
-        assert!(is_valid(VALID_PRIVATE_KEY));
-    }
-
-    #[test]
-    fn test_invalid_key_should_not_be_valid() {
-        assert!(!is_valid(INVALID_PRIVATE_KEY));
-    }
-
-    #[test]
-    fn test_tiny_key_should_not_be_valid() {
-        assert!(!is_valid(TINY_KEY));
-    }
-
-    #[test]
-    fn test_derive_public_address() {
-        let address = derive_public_address(VALID_PRIVATE_KEY);
-        assert_eq!(address.as_slice(), VALID_PRIVATE_KEY_ADDRESS);
+    fn test_to_address() {
+        let data = "CBBEC41B016517C3DA8E2F88BDACB293802CECF1AE2C47A7CB5D4BDA28353B5B";
+        let data = data.from_hex().unwrap();
+        let private_key = PrivateKey::new(data.as_slice()).unwrap();
+        let address = private_key.to_address();
+        let expected = util::base58::decode("14ydpwhvtVBMjt5NrechP46UKLSY7jYn7q");
+        assert_eq!(address.get_data(), expected.as_slice());
     }
 }
-*/
+

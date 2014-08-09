@@ -3,7 +3,7 @@ extern crate num;
 extern crate libc;
 extern crate serialize;
 
-use serialize::hex::{ToHex, FromHex};
+use serialize::hex::{ToHex};
 
 use protocol::private_key::PrivateKey;
 use protocol::public_key::PublicKey;

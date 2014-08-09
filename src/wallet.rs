@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 struct Wallet {
     path: Path,
-    entries: HashMap<String, Vec<Address>>
+    entries: HashMap<String, Vec<WalletAddress>>
 }
 
 impl Wallet {

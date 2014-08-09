@@ -46,61 +46,63 @@ impl PublicKey {
     }
 }
 
-/*#[cfg(test)]
+#[cfg(test)]
 mod tests {
-    use super::{LENGTH, ZERO, MAX};
-    use super::{generate, is_valid, derive_public_address};
+    use serialize::hex::FromHex;
 
-    static TINY_KEY: &'static [u8] = &[0x80,0x80,0x80,0x80];
-    static INVALID_PRIVATE_KEY: &'static [u8] =
-        &[0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-          0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00];
-    static VALID_PRIVATE_KEY: &'static [u8] =
-        &[0xf7,0x47,0x65,0x32,0xfe,0x57,0x53,0xeb,0xcb,0xea,0x26,0xfe,0x02,0xff,0xf1,0x8b,
-          0xf0,0x15,0x54,0x6f,0x85,0xca,0xf7,0x8a,0xc8,0xd5,0x99,0x54,0x7f,0x7d,0x3a,0xac];
-    static VALID_PRIVATE_KEY_ADDRESS: &'static str = "19gL5Rq1uc5yspAtbM7NyDs1godKnGHMar";
+    use util;
+    use protocol::private_key::PrivateKey;
 
+    use super::PublicKey;
 
     #[test]
-    fn test_generate() {
-        let key = generate();
-        assert!(key.len() == LENGTH);
-
-        // If the same address is generated again, then there's a serious
-        // problem. Even if it can happen in theory.
-        let key2 = generate();
-        assert!(key != key2);
+    fn test_new() {
+        let data = "04904B5CC692ECED64B2C04821F6A2D795BC3BC02F46165F95B817AF8A7810830D\
+                      5BD4895315905B429EAEA4424908B3289668E46A2D1E451B2C9365120EB6D565";
+        let data = data.from_hex().unwrap();
+        let public_key = PublicKey::new(data.as_slice());
+        assert!(public_key.is_some());
+        assert_eq!(public_key.unwrap().get_data(), data.as_slice());
     }
 
     #[test]
-    fn test_zero_key_should_be_invalid() {
-        assert!(!is_valid(ZERO));
+    fn test_new_invalid_length() {
+        let data = "04904B5CC692ECED64B2C04821F6A2D795BC3BC02F46165F95B817AF8A78108301";
+        let data = data.from_hex().unwrap();
+        let public_key = PublicKey::new(data.as_slice());
+        assert!(public_key.is_none());
     }
 
     #[test]
-    fn test_max_key_should_be_valid() {
-        assert!(is_valid(MAX));
+    fn test_new_invalid_initial_byte() {
+        let data = "0591A96B238A78360ECD43AC62CAC979C4460ED03D780B69DD6FF036B6F79590DC\
+                      C8E7E42CA32A54D397F01D19DE250AED0B0D26AA0C3B07DA7D64C2F938065584";
+        let data = data.from_hex().unwrap();
+        let public_key = PublicKey::new(data.as_slice());
+        assert!(public_key.is_none());
     }
 
     #[test]
-    fn test_valid_key_should_be_valid() {
-        assert!(is_valid(VALID_PRIVATE_KEY));
+    fn test_from_private_key() {
+        let data = "6B68589FA737367206B9E97DEE27828B9688FA3D034352DA0E79340B882582F9";
+        let data = data.from_hex().unwrap();
+        let private_key = PrivateKey::new(data.as_slice()).unwrap();
+        let public_key = PublicKey::from_private_key(&private_key);
+        let expected = "048E9DD4F17736E54FE6E8C1AA6E784336D0719F4FB726179142497CC7104A969B\
+                          A284828FF9AAB80619BDF0AFB70A626B077391768242C300594A25D475068F29";
+        let expected = expected.from_hex().unwrap();
+        assert_eq!(public_key.get_data(), expected.as_slice());
     }
 
     #[test]
-    fn test_invalid_key_should_not_be_valid() {
-        assert!(!is_valid(INVALID_PRIVATE_KEY));
-    }
-
-    #[test]
-    fn test_tiny_key_should_not_be_valid() {
-        assert!(!is_valid(TINY_KEY));
-    }
-
-    #[test]
-    fn test_derive_public_address() {
-        let address = derive_public_address(VALID_PRIVATE_KEY);
-        assert_eq!(address.as_slice(), VALID_PRIVATE_KEY_ADDRESS);
+    fn test_to_address() {
+        let data = "0423111FB83A08B04A546F94BC6845E07BCD5105E4738631DCDCE8E8656A9F3405\
+                      9FC7368BE3FFB812E0C0BCB4C671CE7EE61B277BC4C1ED0240E6A346E5BBBFC0";
+        let data = data.from_hex().unwrap();
+        let public_key = PublicKey::new(data.as_slice()).unwrap();
+        let address = public_key.to_address();
+        let expected = util::base58::decode("1Eii6CZznXKL5qYwEYGdWGYGUFcDm8znL8");
+        assert_eq!(address.get_data(), expected.as_slice());
     }
 }
-*/
+

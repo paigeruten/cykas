@@ -50,11 +50,8 @@ impl Address {
 
     // Checks if the given public key is valid.
     fn is_valid(&self) -> bool {
-        // The raw data consists of a version byte, a 20-byte RIPEMD-160 hash,
-        // and a 4-byte checksum. We need to slice out the 20-byte hash to
-        // compute the checksum.
-        let inner_hash = self.data.slice(1, 21);
-        let expected_checksum = util::check::checksum(inner_hash);
+        let data_without_checksum = self.data.slice(0, 21);
+        let expected_checksum = util::check::checksum(data_without_checksum);
 
         self.data.len() == LENGTH &&
         self.data[0] == VERSION_BYTE &&
@@ -67,61 +64,49 @@ impl Address {
     }
 }
 
-/*#[cfg(test)]
 mod tests {
-    use super::{LENGTH, ZERO, MAX};
-    use super::{generate, is_valid, derive_public_address};
+    use serialize::hex::FromHex;
 
-    static TINY_KEY: &'static [u8] = &[0x80,0x80,0x80,0x80];
-    static INVALID_PRIVATE_KEY: &'static [u8] =
-        &[0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-          0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00];
-    static VALID_PRIVATE_KEY: &'static [u8] =
-        &[0xf7,0x47,0x65,0x32,0xfe,0x57,0x53,0xeb,0xcb,0xea,0x26,0xfe,0x02,0xff,0xf1,0x8b,
-          0xf0,0x15,0x54,0x6f,0x85,0xca,0xf7,0x8a,0xc8,0xd5,0x99,0x54,0x7f,0x7d,0x3a,0xac];
-    static VALID_PRIVATE_KEY_ADDRESS: &'static str = "19gL5Rq1uc5yspAtbM7NyDs1godKnGHMar";
+    use util;
+    use protocol::public_key::PublicKey;
+    use protocol::private_key::PrivateKey;
 
+    use super::Address;
 
     #[test]
-    fn test_generate() {
-        let key = generate();
-        assert!(key.len() == LENGTH);
-
-        // If the same address is generated again, then there's a serious
-        // problem. Even if it can happen in theory.
-        let key2 = generate();
-        assert!(key != key2);
+    fn test_new() {
+        let data = util::base58::decode("19gL5Rq1uc5yspAtbM7NyDs1godKnGHMar");
+        let address = Address::new(data.as_slice());
+        assert!(address.is_some());
+        assert_eq!(address.unwrap().get_data(), data.as_slice());
     }
 
     #[test]
-    fn test_zero_key_should_be_invalid() {
-        assert!(!is_valid(ZERO));
+    fn test_new_invalid_checksum() {
+        let data = util::base58::decode("19gL5Rq1uc5yspAtbM7NyDs1godKnGHMas");
+        let address = Address::new(data.as_slice());
+        assert!(address.is_none());
     }
 
     #[test]
-    fn test_max_key_should_be_valid() {
-        assert!(is_valid(MAX));
+    fn test_from_public_key() {
+        let data = "04EB4EA815229359CEC3965507FF68F8B3C7B8632FF9ABD46A06520A838C468AFC\
+                    5B2EB3588549E626200A698D38966B38498EB27CBAAADE5EEE6DEF01DF061F73";
+        let data = data.from_hex().unwrap();
+        let public_key = PublicKey::new(data.as_slice()).unwrap();
+        let address = Address::from_public_key(&public_key);
+        let address_base58 = util::base58::encode(address.get_data());
+        assert_eq!(address_base58.as_slice(), "1BN7qZoGjmpwD3nSLrFy6xfdDQbTvQDUbs");
     }
 
     #[test]
-    fn test_valid_key_should_be_valid() {
-        assert!(is_valid(VALID_PRIVATE_KEY));
+    fn test_from_private_key() {
+        let data = "F704C5F491F6B1235E6571AD10157A29782A71DF33A8FD7298A50B5CF0A65281";
+        let data = data.from_hex().unwrap();
+        let private_key = PrivateKey::new(data.as_slice()).unwrap();
+        let address = Address::from_private_key(&private_key);
+        let address_base58 = util::base58::encode(address.get_data());
+        assert_eq!(address_base58.as_slice(), "19pXLZXnPJjN1h2EWjzodArVV867Vqpo6p");
     }
-
-    #[test]
-    fn test_invalid_key_should_not_be_valid() {
-        assert!(!is_valid(INVALID_PRIVATE_KEY));
-    }
-
-    #[test]
-    fn test_tiny_key_should_not_be_valid() {
-        assert!(!is_valid(TINY_KEY));
-    }
-
-    #[test]
-    fn test_derive_public_address() {
-        let address = derive_public_address(VALID_PRIVATE_KEY);
-        assert_eq!(address.as_slice(), VALID_PRIVATE_KEY_ADDRESS);
-    }
-}*/
+}
 
