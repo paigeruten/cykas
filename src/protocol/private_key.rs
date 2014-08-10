@@ -92,7 +92,7 @@ impl PrivateKey {
     }
 
     // Gets the raw private key as a slice of bytes.
-    pub fn get_data<'a>(&'a self) -> &'a [u8] {
+    pub fn get_data(&self) -> &[u8] {
         self.data.as_slice()
     }
 
