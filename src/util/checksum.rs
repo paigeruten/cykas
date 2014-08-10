@@ -1,6 +1,13 @@
 use openssl;
 use openssl::crypto::hash::SHA256;
 
+static LENGTH: uint = 4;
+
+pub fn check(data: &[u8]) -> bool {
+    let (payload, given_checksum) = data.split_at(data.len() - LENGTH);
+    checksum(payload).as_slice() == given_checksum
+}
+
 pub fn checksum(data: &[u8]) -> Vec<u8> {
     let double_hash = double_sha256(data);
     double_hash.slice(0, 4).to_vec()

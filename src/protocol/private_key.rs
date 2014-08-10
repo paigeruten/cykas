@@ -1,6 +1,6 @@
 use openssl;
 
-use util;
+use util::checksum;
 use protocol::public_key::PublicKey;
 use protocol::address::Address;
 
@@ -55,7 +55,7 @@ impl PrivateKey {
         let version_byte = data[0];
         let key = data.slice(1, 33);
         let checksum = data.slice(33, 37);
-        let actual_checksum = util::check::checksum(data.slice(0, 33));
+        let actual_checksum = checksum::checksum(data.slice(0, 33));
 
         let private_key = PrivateKey { data: key.to_vec() };
         let valid = version_byte == VERSION_BYTE &&
@@ -102,7 +102,7 @@ impl PrivateKey {
         wif.push(VERSION_BYTE);
         wif.push_all(self.data.as_slice());
 
-        let checksum = util::check::checksum(wif.as_slice());
+        let checksum = checksum::checksum(wif.as_slice());
         wif.push_all(checksum.as_slice());
 
         wif
