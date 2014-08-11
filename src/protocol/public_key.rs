@@ -101,7 +101,7 @@ mod tests {
         let data = data.from_hex().unwrap();
         let public_key = PublicKey::new(data.as_slice()).unwrap();
         let address = public_key.to_address();
-        let expected = util::base58::decode("1Eii6CZznXKL5qYwEYGdWGYGUFcDm8znL8");
+        let expected = util::base58::decode("1Eii6CZznXKL5qYwEYGdWGYGUFcDm8znL8").unwrap();
         assert_eq!(address.get_data(), expected.as_slice());
     }
 }

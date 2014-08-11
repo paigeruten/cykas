@@ -45,8 +45,8 @@ pub fn encode(data: &[u8]) -> String {
 }
 
 // Converts a base-58 string back to the data it represents, as a vector of
-// bytes.
-pub fn decode(string: &str) -> Vec<u8> {
+// bytes. Returns None if the string contains non-base-58 characters.
+pub fn decode(string: &str) -> Option<Vec<u8>> {
     // Count the number of leading zeroes at the beginning of the string. Each
     // leading zero (which appears as '1' in base-58) represents one zero-byte
     // at the beginning of the decoded data, so we treat these separately
@@ -62,8 +62,9 @@ pub fn decode(string: &str) -> Vec<u8> {
     let mut multiplier: BigUint = 1u.to_biguint().unwrap();
     let fifty_eight = 58u.to_biguint().unwrap();
     for digit in string.chars().rev() {
-        let digit = ALPHABET.chars().position(|ch| ch == digit ).unwrap();
-        n = n + digit.to_biguint().unwrap() * multiplier;
+        let value = ALPHABET.chars().position(|ch| ch == digit );
+        if value.is_none() { return None; }
+        n = n + value.unwrap().to_biguint().unwrap() * multiplier;
         multiplier = multiplier * fifty_eight;
     }
 
@@ -85,7 +86,7 @@ pub fn decode(string: &str) -> Vec<u8> {
 
     // Put the vector in the right order before returning it.
     result.reverse();
-    result
+    Some(result)
 }
 
 #[cfg(test)]
@@ -130,24 +131,30 @@ mod tests {
         // Normal Bitcoin address.
         let data: &[u8] = &[0x00u8,0x78,0x97,0x0e,0x37,0xa7,0xa4,0x71,0xdc,0x33,0xda,0xdb,
                             0x51,0x42,0x06,0x84,0x31,0xb4,0x85,0x17,0xab,0x00,0xed,0xb1,0x45];
-        assert_eq!(decode("1Bzd3YTSDwdFfAhMwYNV6A3K5hwYHbaUeG").as_slice(), data);
+        assert_eq!(decode("1Bzd3YTSDwdFfAhMwYNV6A3K5hwYHbaUeG").unwrap().as_slice(), data);
 
         // Bitcoin address that starts with two 1's.
         let data: &[u8] = &[0x00,0x00,0x51,0x34,0xda,0xfd,0x60,0x2d,0xcc,0x55,0x36,0x87,
                             0x06,0xd7,0x56,0xc7,0x4f,0xb7,0x74,0x48,0x31,0xf3,0x22,0xdc,0xe3];
-        assert_eq!(decode("112gHKoeKQ3PEXEdAZeC5tBoonPR2UCQot").as_slice(), data);
+        assert_eq!(decode("112gHKoeKQ3PEXEdAZeC5tBoonPR2UCQot").unwrap().as_slice(), data);
 
         // Bitcoin address that starts with three 1's (took a while to find
         // this one).
         let data: &[u8] = &[0x00,0x00,0x00,0x23,0xc5,0x36,0xed,0x86,0x7d,0x66,0xa0,0x6b,
                             0x5a,0xfe,0x67,0x5d,0xe8,0xcb,0xe9,0x03,0x94,0x33,0xe5,0x57,0x3d];
-        assert_eq!(decode("111Ai6JPjhcuWxu6ULnRtk34cEj2ZJXfa").as_slice(), data);
+        assert_eq!(decode("111Ai6JPjhcuWxu6ULnRtk34cEj2ZJXfa").unwrap().as_slice(), data);
     }
 
     #[test]
     fn test_decode_zeroes() {
         let data: &[u8] = &[0x00,0x00,0x00,0x00];
-        assert_eq!(decode("1111").as_slice(), data);
+        assert_eq!(decode("1111").unwrap().as_slice(), data);
+    }
+
+    #[test]
+    fn test_decode_invalid() {
+        assert!(decode("123OI321").is_none());
+        assert!(decode("123 321").is_none());
     }
 }
 

@@ -87,7 +87,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let data = base58::decode("19gL5Rq1uc5yspAtbM7NyDs1godKnGHMar");
+        let data = base58::decode("19gL5Rq1uc5yspAtbM7NyDs1godKnGHMar").unwrap();
         let address = Address::new(data.as_slice());
         assert!(address.is_some());
         assert_eq!(address.unwrap().get_data(), data.as_slice());
@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_new_invalid_checksum() {
-        let data = base58::decode("18gL5Rq1uc5yspAtbM7NyDs1godKnGHMar");
+        let data = base58::decode("18gL5Rq1uc5yspAtbM7NyDs1godKnGHMar").unwrap();
         let address = Address::new(data.as_slice());
         assert!(address.is_none());
     }

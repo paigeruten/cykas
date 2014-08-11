@@ -159,7 +159,7 @@ mod tests {
 
     #[test]
     fn test_from_wif() {
-        let data = util::base58::decode("5HqRSKD8yqyRjm1eaEmeAJcgs2iY5ywf7FD1xEMetNAZcUpqKAr");
+        let data = util::base58::decode("5HqRSKD8yqyRjm1eaEmeAJcgs2iY5ywf7FD1xEMetNAZcUpqKAr").unwrap();
         let private_key = PrivateKey::from_wif(data.as_slice());
         assert!(private_key.is_some());
         assert_eq!(private_key.unwrap().get_data(), data.slice(1, 33));
@@ -167,7 +167,7 @@ mod tests {
 
     #[test]
     fn test_from_wif_invalid_checksum() {
-        let data = util::base58::decode("5J5gwp44QZSNJbaHS4f5w2Wisrt8bHHdmB7rQetgsH7tghvVPY8");
+        let data = util::base58::decode("5J5gwp44QZSNJbaHS4f5w2Wisrt8bHHdmB7rQetgsH7tghvVPY8").unwrap();
         let private_key = PrivateKey::from_wif(data.as_slice());
         assert!(private_key.is_none());
     }
@@ -209,7 +209,7 @@ mod tests {
         let data = data.from_hex().unwrap();
         let private_key = PrivateKey::new(data.as_slice()).unwrap();
         let address = private_key.to_address();
-        let expected = util::base58::decode("14ydpwhvtVBMjt5NrechP46UKLSY7jYn7q");
+        let expected = util::base58::decode("14ydpwhvtVBMjt5NrechP46UKLSY7jYn7q").unwrap();
         assert_eq!(address.get_data(), expected.as_slice());
     }
 }
