@@ -1,3 +1,4 @@
+extern crate debug; // temporary
 extern crate openssl;
 extern crate num;
 extern crate libc;
@@ -42,9 +43,14 @@ fn aes_test() {
 */
 
 fn main() {
-    let mut wallet = Wallet::new(Path::new("WALLET.test"));
-    wallet.gen("main");
-    wallet.gen_multiple("change", 5);
-    wallet.save();
+    let wallet = match Wallet::load(&Path::new("WALLET.txt")) {
+        Ok(w) => w,
+        Err(e) => { println!("Error: {}", e); fail!(); }
+    };
+
+    match wallet.save() {
+        Ok(()) => println!("WALLET.txt saved."),
+        Err(e) => println!("Error: {}", e)
+    }
 }
 
