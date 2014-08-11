@@ -4,10 +4,11 @@ use util::checksum;
 use protocol::public_key::PublicKey;
 use protocol::address::Address;
 
-// A Bitcoin private key is 32 bytes (256 bits) in length.
+// Length of a raw Bitcoin private key.
 static LENGTH: uint = 32u;
 
-// Version byte for the Wallet Import Format.
+// This byte must be at the start of any Bitcoin private key that's in Wallet
+// Import Format (WIF).
 static VERSION_BYTE: u8 = 0x80;
 
 // Bitcoin keys must be less than or equal to this value, as dictated by the
@@ -19,7 +20,7 @@ static MAX: &'static [u8] = &[
     0xbf,0xd2,0x5e,0x8c,0xd0,0x36,0x41,0x40
 ];
 
-// ...also, Bitcoin keys can't be zero.
+// Bitcoin keys must be greater than zero.
 static ZERO: &'static [u8] = &[
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -27,68 +28,78 @@ static ZERO: &'static [u8] = &[
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 ];
 
-// A Bitcoin private key is 32 bytes of data which must be greater than `ZERO`
-// and no greater than `MAX`, as defined above.
+// Represents a raw Bitcoin private key, consisting of 32 bytes of data which
+// must be greater than `ZERO` and no greater than `MAX`, as defined above.
 pub struct PrivateKey {
     data: Vec<u8>
 }
 
 impl PrivateKey {
-    // Creates a PrivateKey from the given raw data. Returns None if the data
-    // is an invalid private key.
+    // Creates a PrivateKey from raw data. Returns None if the data is not a
+    // valid Bitcoin private key.
     pub fn new(data: &[u8]) -> Option<PrivateKey> {
-        let key = PrivateKey { data: data.to_vec() };
-        if key.is_valid() {
-            Some(key)
+        if is_valid(data) {
+            Some(PriavteKey { data: data.to_vec() })
         } else {
             None
         }
     }
 
-    // Creates a PrivateKey from the given raw data that is in Bitcoin's
-    // Wallet Import Format. Returns None if the data is invalid.
+    // Generates a random Bitcoin private key securely, using openssl's random
+    // bytes generator.
+    pub fn generate() -> PrivateKey {
+        loop {
+            // Just generate 32 random bytes. The result is almost certainly a
+            // valid private key. Just in case it isn't, keep looping until we
+            // get a valid one.
+            let key = openssl::crypto::rand::rand_bytes(LENGTH);
+            if is_valid(key.as_slice()) {
+                return PrivateKey { data: key }
+            }
+        }
+    }
+
+    // Checks if the given private key data is valid.
+    fn is_valid(data: &[u8]) -> bool {
+        data.len() == LENGTH &&
+        data.as_slice() > ZERO &&
+        data.as_slice() <= MAX
+    }
+
+    // Decodes the given Wallet Import Format (WIF) raw data into a PrivateKey.
+    // The bytes of a WIF private key are laid out like this:
+    //
+    //     vkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkcccc
+    //
+    // Where `v` is the version byte, `k` is the 32-byte private key, and `c`
+    // is the 4-byte checksum.
     pub fn from_wif(data: &[u8]) -> Option<PrivateKey> {
+        // With the version byte and the checksum, the length should be exactly
+        // 35 bytes.
         if data.len() != 1 + LENGTH + 4 {
             return None;
         }
 
+        // Now that we know we have exactly 35 bytes, we can just slice the
+        // data into its three component parts.
         let version_byte = data[0];
         let key = data.slice(1, 33);
         let checksum = data.slice(33, 37);
+
+        // Compute the checksum of the private key.
         let actual_checksum = checksum::checksum(data.slice(0, 33));
 
-        let private_key = PrivateKey { data: key.to_vec() };
+        // Validate each component of the data.
         let valid = version_byte == VERSION_BYTE &&
-                    private_key.is_valid() &&
+                    is_valid(key) &&
                     checksum == actual_checksum.as_slice();
 
+        // If everything is valid, create the PrivateKey.
         if valid {
-            Some(private_key)
+            Some(PrivateKey { data: key.to_vec() })
         } else {
             None
         }
-    }
-
-    // Generates a random key using openssl's random bytes generator.
-    pub fn generate() -> PrivateKey {
-        let mut key;
-        loop {
-            // To generate a random key, just ask openssl for 32 random bytes. Keep
-            // generating a new one until we get a valid one. (The range of invalid
-            // private keys is so tiny that it should pretty much never give us an
-            // invalid one.)
-            key = PrivateKey { data: openssl::crypto::rand::rand_bytes(LENGTH) };
-            if key.is_valid() { break; }
-        }
-        key
-    }
-
-    // Checks if the given private key is valid. A Bitcoin private key is valid if
-    // it is exactly 32 bytes long, and is less than MAX, and isn't zero.
-    fn is_valid(&self) -> bool {
-        self.data.len() == LENGTH &&
-        self.data.as_slice() > ZERO &&
-        self.data.as_slice() <= MAX
     }
 
     // Gets the raw private key as a slice of bytes.
@@ -96,24 +107,32 @@ impl PrivateKey {
         self.data.as_slice()
     }
 
-    // Converts the private key to Wallet Import Format.
+    // Converts the private key to Wallet Import Format (WIF), as raw bytes.
+    // See from_wif() for details on the format.
     pub fn to_wif(&self) -> Vec<u8> {
         let mut wif = Vec::with_capacity(1 + LENGTH + 4);
+
+        // Start with the version byte.
         wif.push(VERSION_BYTE);
+
+
+        // Then comes the actual 32-byte private key.
         wif.push_all(self.data.as_slice());
 
+        // Finally, compute the checksum of what we have so far and append it
+        // to the end.
         let checksum = checksum::checksum(wif.as_slice());
         wif.push_all(checksum.as_slice());
 
         wif
     }
 
-    // Derives the public key from the private key.
+    // Derives the public key from the given private key.
     pub fn to_public_key(&self) -> PublicKey {
         PublicKey::from_private_key(self)
     }
 
-    // Derives the address from the private key.
+    // Derives the address from the given private key.
     pub fn to_address(&self) -> Address {
         Address::from_private_key(self)
     }
@@ -123,7 +142,7 @@ impl PrivateKey {
 mod tests {
     use serialize::hex::FromHex;
 
-    use util;
+    use util::base58;
 
     use super::{LENGTH, ZERO, MAX};
     use super::PrivateKey;
@@ -159,7 +178,7 @@ mod tests {
 
     #[test]
     fn test_from_wif() {
-        let data = util::base58::decode("5HqRSKD8yqyRjm1eaEmeAJcgs2iY5ywf7FD1xEMetNAZcUpqKAr").unwrap();
+        let data = base58::decode("5HqRSKD8yqyRjm1eaEmeAJcgs2iY5ywf7FD1xEMetNAZcUpqKAr").unwrap();
         let private_key = PrivateKey::from_wif(data.as_slice());
         assert!(private_key.is_some());
         assert_eq!(private_key.unwrap().get_data(), data.slice(1, 33));
@@ -167,7 +186,7 @@ mod tests {
 
     #[test]
     fn test_from_wif_invalid_checksum() {
-        let data = util::base58::decode("5J5gwp44QZSNJbaHS4f5w2Wisrt8bHHdmB7rQetgsH7tghvVPY8").unwrap();
+        let data = base58::decode("5J5gwp44QZSNJbaHS4f5w2Wisrt8bHHdmB7rQetgsH7tghvVPY8").unwrap();
         let private_key = PrivateKey::from_wif(data.as_slice());
         assert!(private_key.is_none());
     }
@@ -187,7 +206,7 @@ mod tests {
         let data = data.from_hex().unwrap();
         let private_key = PrivateKey::new(data.as_slice()).unwrap();
         let wif = private_key.to_wif();
-        let wif_base58 = util::base58::encode(wif.as_slice());
+        let wif_base58 = base58::encode(wif.as_slice());
         assert_eq!(wif_base58.as_slice(), "5KPqe3y95higsGQaWN6TQPtv2BQ2X1SqL87AmVAuiz811uCQRYQ");
     }
 
@@ -209,7 +228,7 @@ mod tests {
         let data = data.from_hex().unwrap();
         let private_key = PrivateKey::new(data.as_slice()).unwrap();
         let address = private_key.to_address();
-        let expected = util::base58::decode("14ydpwhvtVBMjt5NrechP46UKLSY7jYn7q").unwrap();
+        let expected = base58::decode("14ydpwhvtVBMjt5NrechP46UKLSY7jYn7q").unwrap();
         assert_eq!(address.get_data(), expected.as_slice());
     }
 }

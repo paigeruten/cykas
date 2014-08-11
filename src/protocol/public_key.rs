@@ -1,41 +1,48 @@
-use util;
+use util::base58
+use util::ecdsa;
 use protocol::private_key::PrivateKey;
 use protocol::address::Address;
 
-// TODO: support compressed public keys?
+// Length of a raw Bitcoin public key.
 static LENGTH: uint = 65u;
 
-// A Bitcoin public key is 65 bytes, consisting of a 0x04 byte (indicating it
-// is in uncompressed format), a 32-byte X coordinate, and a 32-byte Y
-// coordinate.
+// Initial byte of a public key, signifying it's in uncompressed format.
+static FORMAT_BYTE: u8 = 0x04;
+
+// Represents a raw Bitcoin public key. The bytes of a public key are laid out
+// like this:
+//
+//     cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+//
+// Where `c` is the byte 0x04 signifying that the public key is in uncompressed
+// format, and `x` and `y` are the 32-byte X and Y coordinates.
 pub struct PublicKey {
     data: Vec<u8>
 }
 
 impl PublicKey {
-    // Creates a PublicKey from the given raw data. Returns None if the data is
-    // invalid.
+    // Creates a PublicKey from raw data. Returns None if the data is not a
+    // valid Bitcoin public key.
     pub fn new(data: &[u8]) -> Option<PublicKey> {
-        let key = PublicKey { data: data.to_vec() };
-        if key.is_valid() {
-            Some(key)
+        if PublicKey::is_valid(data) {
+            Some(PublicKey { data: data.to_vec() })
         } else {
             None
         }
     }
 
+    // Checks if the given public key data is valid.
+    fn is_valid(data: &[u8]) -> bool {
+        data.len() == LENGTH &&
+        data[0] == FORMAT_BYTE
+    }
+
     // Creates a PublicKey from a PrivateKey.
     pub fn from_private_key(private_key: &PrivateKey) -> PublicKey {
-        PublicKey { data: util::ecdsa::derive_public_key(private_key.get_data()) }
+        PublicKey { data: ecdsa::derive_public_key(private_key.get_data()) }
     }
 
-    // Checks if the given public key is valid.
-    fn is_valid(&self) -> bool {
-        self.data.len() == LENGTH &&
-        self.data[0] == 0x04
-    }
-
-    // Gets the raw data as a slice of bytes.
+    // Gets the raw public key as a slice of bytes.
     pub fn get_data(&self) -> &[u8] {
         self.data.as_slice()
     }
@@ -50,7 +57,7 @@ impl PublicKey {
 mod tests {
     use serialize::hex::FromHex;
 
-    use util;
+    use util::base58;
     use protocol::private_key::PrivateKey;
 
     use super::PublicKey;
@@ -101,7 +108,7 @@ mod tests {
         let data = data.from_hex().unwrap();
         let public_key = PublicKey::new(data.as_slice()).unwrap();
         let address = public_key.to_address();
-        let expected = util::base58::decode("1Eii6CZznXKL5qYwEYGdWGYGUFcDm8znL8").unwrap();
+        let expected = base58::decode("1Eii6CZznXKL5qYwEYGdWGYGUFcDm8znL8").unwrap();
         assert_eq!(address.get_data(), expected.as_slice());
     }
 }
