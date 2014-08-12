@@ -115,7 +115,6 @@ impl PrivateKey {
         // Start with the version byte.
         wif.push(VERSION_BYTE);
 
-
         // Then comes the actual 32-byte private key.
         wif.push_all(self.data.as_slice());
 
