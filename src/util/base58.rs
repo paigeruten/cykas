@@ -5,87 +5,92 @@ use num::Integer;
 // Bitcoin's base-58 alphabet.
 static ALPHABET: &'static str = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
-// Converts `data` to a base-58 string, that can be decoded by decode().
+// Encode a slice of bytes as base-58, preserving leading zero bytes.
 pub fn encode(data: &[u8]) -> String {
-    // Count the number of zero bytes at the beginning of the data. In the
-    // Bitcoin base-58 format, leading zero bytes are treated separately. After
-    // the real base-58 conversion, they will be added back as '1' characters.
+    // Count the leading zeroes.
     let num_zeroes = data.iter().take_while(|byte| byte.is_zero()).count();
 
-    // Disregard the leading zero bytes for the actual base-58 conversion.
-    let data = data.slice_from(num_zeroes);
-
     // Convert data to a BigUint.
-    let mut n: BigUint = Zero::zero();
+    let mut n = 0u.to_biguint().unwrap();
     for (idx, byte) in data.iter().rev().enumerate() {
         let byte = byte.to_biguint().unwrap();
         n = n + (byte << (idx * 8)); // Fast way of doing byte * (256 ^ idx).
     }
 
-    // Convert the number to a (reversed) string using repeated division.
-    let mut result = String::new();
-    let fifty_eight = 58u.to_biguint().unwrap();
-    while !n.is_zero() {
-        // Using integer division, chop off a piece of the big number that can
-        // have one of 58 values, and use it as the next digit in the result
-        // string. The rest of the number becomes the new `n`.
-        let (rest_of_n, digit) = n.div_rem(&fifty_eight);
-        result.push_char(ALPHABET.char_at(digit.to_uint().unwrap()));
-        n = rest_of_n;
-    }
+    // Convert that to a base-58 string.
+    let base58 = simple_encode(n);
 
-    // Push a '1' character for each zero byte that we removed at the beginning
-    // of this method.
+    // Allocate the result string.
+    let mut result = String::with_capacity(base58.len() + num_zeroes);
+
+    // First push a '1' character for each leading zero byte we wanted to
+    // preserve.
     for _ in range(0, num_zeroes) {
         result.push_char('1');
     }
 
-    // Finally, reverse the string and return it.
-    result.as_slice().chars().rev().collect()
+    // Append the base-58 after that, and return the result.
+    result.append(base58.as_slice())
 }
 
-// Converts a base-58 string back to the data it represents, as a vector of
+// Decode a base-58 string into a vector of bytes, preserving leading zero
 // bytes. Returns None if the string contains non-base-58 characters.
 pub fn decode(string: &str) -> Option<Vec<u8>> {
-    // Count the number of leading zeroes at the beginning of the string. Each
-    // leading zero (which appears as '1' in base-58) represents one zero-byte
-    // at the beginning of the decoded data, so we treat these separately
-    // before beginning the base-58 conversion.
+    // Count the leading zeroes ('1' characters in base-58).
     let num_zeroes = string.chars().take_while(|ch| *ch == '1').count();
 
-    // Reslice the string to disregard the zeroes we just made a note of.
-    let string = string.slice_chars(num_zeroes, string.len());
+    // Convert string to a BigUint, returning None if it failed.
+    let mut n = match simple_decode(string) {
+        Some(n) => n,
+        None => return None
+    };
 
-    // Convert the base-58 string to a BigUint, by multiplying each digit by
-    // successive powers of 58 and adding all the resulting parts together.
-    let mut n: BigUint = Zero::zero();
-    let mut multiplier: BigUint = 1u.to_biguint().unwrap();
-    let fifty_eight = 58u.to_biguint().unwrap();
-    for digit in string.chars().rev() {
-        let value = ALPHABET.chars().position(|ch| ch == digit );
-        if value.is_none() { return None; }
-        n = n + value.unwrap().to_biguint().unwrap() * multiplier;
-        multiplier = multiplier * fifty_eight;
-    }
-
-    // Convert the number to a (reversed) vector of bytes by repeatedly using a
-    // bitmask on the lowest byte of the BigUint.
+    // Convert BigUint to a vector of bytes.
     let mut result = Vec::new();
-    let byte_mask = 0xffu8.to_biguint().unwrap();
+    let byte_mask = 0xff_u8.to_biguint().unwrap();
     while !n.is_zero() {
         let byte = n & byte_mask;
         result.push(byte.to_u8().unwrap());
         n = n >> 8;
     }
 
-    // Push a zero byte for each zero digit we removed from the original string
-    // at the beginning of this method.
+    // Push a zero byte for each leading '1' character we wanted to preserve.
     for _ in range(0, num_zeroes) {
         result.push(0);
     }
 
-    // Put the vector in the right order before returning it.
+    // Put the result in the right order and return.
     result.reverse();
+    Some(result)
+}
+
+// Encode a number as base-58.
+pub fn simple_encode(mut n: BigUint) -> String {
+    let mut result = String::new();
+    let fifty_eight = 58u.to_biguint().unwrap();
+    while !n.is_zero() {
+        let (rest_of_n, digit) = n.div_rem(&fifty_eight);
+        result.push_char(ALPHABET.char_at(digit.to_uint().unwrap()));
+        n = rest_of_n;
+    }
+
+    // That got us a reversed string, so reverse it back before returning it.
+    result.as_slice().chars().rev().collect()
+}
+
+// Decode a base-58 string into a number. Returns None if the string contains
+// non-base-58 characters.
+pub fn simple_decode(string: &str) -> Option<BigUint> {
+    let mut result: BigUint = 0u.to_biguint().unwrap();
+    let mut multiplier: BigUint = 1u.to_biguint().unwrap();
+    let fifty_eight = 58u.to_biguint().unwrap();
+    for digit in string.chars().rev() {
+        let value = ALPHABET.chars().position(|ch| ch == digit );
+        if value.is_none() { return None }
+        result = result + value.unwrap().to_biguint().unwrap() * multiplier;
+        multiplier = multiplier * fifty_eight;
+    }
+
     Some(result)
 }
 
