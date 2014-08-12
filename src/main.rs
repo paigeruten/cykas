@@ -52,5 +52,10 @@ fn main() {
         Ok(()) => println!("WALLET.txt saved."),
         Err(e) => println!("Error: {}", e)
     }
+
+/*    let mut wallet = Wallet::new(&Path::new("WALLET.txt"));
+    wallet.gen("main");
+    wallet.gen_multiple("change", 5);
+    wallet.save();*/
 }
 

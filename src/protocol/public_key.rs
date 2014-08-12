@@ -1,4 +1,4 @@
-use util::base58
+use util::base58;
 use util::ecdsa;
 use protocol::private_key::PrivateKey;
 use protocol::address::Address;

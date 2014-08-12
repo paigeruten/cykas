@@ -38,8 +38,8 @@ impl PrivateKey {
     // Creates a PrivateKey from raw data. Returns None if the data is not a
     // valid Bitcoin private key.
     pub fn new(data: &[u8]) -> Option<PrivateKey> {
-        if is_valid(data) {
-            Some(PriavteKey { data: data.to_vec() })
+        if PrivateKey::is_valid(data) {
+            Some(PrivateKey { data: data.to_vec() })
         } else {
             None
         }
@@ -53,7 +53,7 @@ impl PrivateKey {
             // valid private key. Just in case it isn't, keep looping until we
             // get a valid one.
             let key = openssl::crypto::rand::rand_bytes(LENGTH);
-            if is_valid(key.as_slice()) {
+            if PrivateKey::is_valid(key.as_slice()) {
                 return PrivateKey { data: key }
             }
         }
@@ -91,7 +91,7 @@ impl PrivateKey {
 
         // Validate each component of the data.
         let valid = version_byte == VERSION_BYTE &&
-                    is_valid(key) &&
+                    PrivateKey::is_valid(key) &&
                     checksum == actual_checksum.as_slice();
 
         // If everything is valid, create the PrivateKey.
