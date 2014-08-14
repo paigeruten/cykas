@@ -1,7 +1,7 @@
 use openssl;
 use openssl::crypto::hash::{SHA256, RIPEMD160};
 
-use util::checksum;
+use util::wif;
 use protocol::public_key::PublicKey;
 use protocol::private_key::PrivateKey;
 
@@ -38,7 +38,7 @@ impl Address {
     fn is_valid(data: &[u8]) -> bool {
         data.len() == LENGTH &&
         data[0] == VERSION_BYTE &&
-        checksum::check(data)
+        wif::check(data)
     }
 
     // Creates an Address from a PublicKey.
@@ -48,16 +48,9 @@ impl Address {
         let public_key_sha = openssl::crypto::hash::hash(SHA256, public_key.get_data());
         let public_key_ripemd = openssl::crypto::hash::hash(RIPEMD160, public_key_sha.as_slice());
 
-        // We have the 20-byte hash; now we'll build the complete address out
-        // of that.
-        let mut data = public_key_ripemd;
-
-        // First insert the version byte at the beginning.
-        data.insert(0, VERSION_BYTE);
-
-        // Then append the 4-byte checksum of the data to the end.
-        let checksum = checksum::checksum(data.as_slice());
-        data.push_all(checksum.as_slice());
+        // Encode it in WIF format, which puts the version byte in front and a
+        // 4-byte checksum at the end.
+        let data = wif::encode(public_key_ripemd.as_slice(), VERSION_BYTE);
 
         Address(data)
     }

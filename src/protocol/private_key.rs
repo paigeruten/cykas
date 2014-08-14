@@ -1,6 +1,6 @@
 use openssl;
 
-use util::checksum;
+use util::wif;
 use protocol::public_key::PublicKey;
 use protocol::address::Address;
 
@@ -73,32 +73,16 @@ impl PrivateKey {
     // Where `v` is the version byte, `k` is the 32-byte private key, and `c`
     // is the 4-byte checksum.
     pub fn from_wif(data: &[u8]) -> Option<PrivateKey> {
-        // With the version byte and the checksum, the length should be exactly
-        // 35 bytes.
-        if data.len() != 1 + LENGTH + 4 {
-            return None;
+        let key = wif::decode(data, VERSION_BYTE);
+
+        if key.is_some() {
+            let key = key.unwrap();
+            if PrivateKey::is_valid(key.as_slice()) {
+                return Some(PrivateKey(key));
+            }
         }
 
-        // Now that we know we have exactly 35 bytes, we can just slice the
-        // data into its three component parts.
-        let version_byte = data[0];
-        let key = data.slice(1, 33);
-        let checksum = data.slice(33, 37);
-
-        // Compute the checksum of the private key.
-        let actual_checksum = checksum::checksum(data.slice(0, 33));
-
-        // Validate each component of the data.
-        let valid = version_byte == VERSION_BYTE &&
-                    PrivateKey::is_valid(key) &&
-                    checksum == actual_checksum.as_slice();
-
-        // If everything is valid, create the PrivateKey.
-        if valid {
-            Some(PrivateKey(key.to_vec()))
-        } else {
-            None
-        }
+        None
     }
 
     // Gets the raw private key as a slice of bytes.
@@ -110,20 +94,7 @@ impl PrivateKey {
     // Converts the private key to Wallet Import Format (WIF), as raw bytes.
     // See from_wif() for details on the format.
     pub fn to_wif(&self) -> Vec<u8> {
-        let mut wif = Vec::with_capacity(1 + LENGTH + 4);
-
-        // Start with the version byte.
-        wif.push(VERSION_BYTE);
-
-        // Then comes the actual 32-byte private key.
-        wif.push_all(self.get_data().as_slice());
-
-        // Finally, compute the checksum of what we have so far and append it
-        // to the end.
-        let checksum = checksum::checksum(wif.as_slice());
-        wif.push_all(checksum.as_slice());
-
-        wif
+        wif::encode(self.get_data().as_slice(), VERSION_BYTE)
     }
 
     // Derives the public key from the given private key.
