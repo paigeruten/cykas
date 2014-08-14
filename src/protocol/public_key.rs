@@ -16,16 +16,14 @@ static FORMAT_BYTE: u8 = 0x04;
 // Where `c` is the byte 0x04 signifying that the public key is in uncompressed
 // format, and `x` and `y` are the 32-byte X and Y coordinates.
 #[deriving(Clone)]
-pub struct PublicKey {
-    data: Vec<u8>
-}
+pub struct PublicKey(Vec<u8>);
 
 impl PublicKey {
     // Creates a PublicKey from raw data. Returns None if the data is not a
     // valid Bitcoin public key.
     pub fn new(data: &[u8]) -> Option<PublicKey> {
         if PublicKey::is_valid(data) {
-            Some(PublicKey { data: data.to_vec() })
+            Some(PublicKey(data.to_vec()))
         } else {
             None
         }
@@ -39,12 +37,13 @@ impl PublicKey {
 
     // Creates a PublicKey from a PrivateKey.
     pub fn from_private_key(private_key: &PrivateKey) -> PublicKey {
-        PublicKey { data: ecdsa::derive_public_key(private_key.get_data()) }
+        PublicKey(ecdsa::derive_public_key(private_key.get_data()))
     }
 
     // Gets the raw public key as a slice of bytes.
     pub fn get_data(&self) -> &[u8] {
-        self.data.as_slice()
+        let PublicKey(ref data) = *self;
+        data.as_slice()
     }
 
     // Derives the address from the public key.

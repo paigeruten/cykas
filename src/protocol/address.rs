@@ -21,16 +21,14 @@ static VERSION_BYTE: u8 = 0x00;
 // Where `v` is the version byte, `h` is a 20-byte hash of the public key, and
 // `c` is the 4-byte checksum.
 #[deriving(Clone)]
-pub struct Address {
-    data: Vec<u8>
-}
+pub struct Address(Vec<u8>);
 
 impl Address {
     // Creates an Address from raw data. Returns None if the data is not a
     // valid Bitcoin address.
     pub fn new(data: &[u8]) -> Option<Address> {
         if Address::is_valid(data) {
-            Some(Address { data: data.to_vec() })
+            Some(Address(data.to_vec()))
         } else {
             None
         }
@@ -61,7 +59,7 @@ impl Address {
         let checksum = checksum::checksum(data.as_slice());
         data.push_all(checksum.as_slice());
 
-        Address { data: data }
+        Address(data)
     }
 
     // Creates an Address from a PrivateKey.
@@ -72,7 +70,8 @@ impl Address {
 
     // Gets the raw address as a slice of bytes.
     pub fn get_data(&self) -> &[u8] {
-        self.data.as_slice()
+        let Address(ref data) = *self;
+        data.as_slice()
     }
 }
 

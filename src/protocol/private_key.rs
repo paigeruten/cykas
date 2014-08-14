@@ -31,16 +31,14 @@ static ZERO: &'static [u8] = &[
 // Represents a raw Bitcoin private key, consisting of 32 bytes of data which
 // must be greater than `ZERO` and no greater than `MAX`, as defined above.
 #[deriving(Clone)]
-pub struct PrivateKey {
-    data: Vec<u8>
-}
+pub struct PrivateKey(Vec<u8>);
 
 impl PrivateKey {
     // Creates a PrivateKey from raw data. Returns None if the data is not a
     // valid Bitcoin private key.
     pub fn new(data: &[u8]) -> Option<PrivateKey> {
         if PrivateKey::is_valid(data) {
-            Some(PrivateKey { data: data.to_vec() })
+            Some(PrivateKey(data.to_vec()))
         } else {
             None
         }
@@ -55,7 +53,7 @@ impl PrivateKey {
             // get a valid one.
             let key = openssl::crypto::rand::rand_bytes(LENGTH);
             if PrivateKey::is_valid(key.as_slice()) {
-                return PrivateKey { data: key }
+                return PrivateKey(key)
             }
         }
     }
@@ -97,7 +95,7 @@ impl PrivateKey {
 
         // If everything is valid, create the PrivateKey.
         if valid {
-            Some(PrivateKey { data: key.to_vec() })
+            Some(PrivateKey(key.to_vec()))
         } else {
             None
         }
@@ -105,7 +103,8 @@ impl PrivateKey {
 
     // Gets the raw private key as a slice of bytes.
     pub fn get_data(&self) -> &[u8] {
-        self.data.as_slice()
+        let PrivateKey(ref data) = *self;
+        data.as_slice()
     }
 
     // Converts the private key to Wallet Import Format (WIF), as raw bytes.
@@ -117,7 +116,7 @@ impl PrivateKey {
         wif.push(VERSION_BYTE);
 
         // Then comes the actual 32-byte private key.
-        wif.push_all(self.data.as_slice());
+        wif.push_all(self.get_data().as_slice());
 
         // Finally, compute the checksum of what we have so far and append it
         // to the end.
