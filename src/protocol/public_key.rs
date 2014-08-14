@@ -1,4 +1,3 @@
-use util::base58;
 use util::ecdsa;
 use protocol::private_key::PrivateKey;
 use protocol::address::Address;
@@ -16,6 +15,7 @@ static FORMAT_BYTE: u8 = 0x04;
 //
 // Where `c` is the byte 0x04 signifying that the public key is in uncompressed
 // format, and `x` and `y` are the 32-byte X and Y coordinates.
+#[deriving(Clone)]
 pub struct PublicKey {
     data: Vec<u8>
 }

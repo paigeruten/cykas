@@ -9,6 +9,7 @@ use wallet::Wallet;
 pub mod protocol;
 pub mod util;
 pub mod wallet;
+pub mod wallet_tokenizer;
 
 /*
 fn aes_test() {
