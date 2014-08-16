@@ -1,3 +1,6 @@
+use openssl;
+use serialize::hex::ToHex;
+
 use std::collections::TreeMap;
 use std::io::{File,BufferedReader,IoResult};
 
@@ -21,7 +24,7 @@ struct WalletEntry {
 impl Wallet {
     pub fn new(path: &Path) -> Wallet {
         if path.exists() {
-            fail!("Wallet file already exists, will not overwrite!");
+            //fail!("Wallet file already exists, will not overwrite!");
         }
 
         Wallet { path: path.clone(), entries: TreeMap::new() }
@@ -54,6 +57,8 @@ impl Wallet {
         // TODO: make a backup copy first, to delete when the new file is
         // closed.
 
+        let (salt, iv, encrypted_data) = self.encrypt();
+
         let mut file = try!(File::create(&self.path));
 
         for (alias, entries) in self.entries.iter() {
@@ -63,7 +68,54 @@ impl Wallet {
             }
         }
 
-        writeln!(file, "")
+        try!(writeln!(file, ""));
+        try!(writeln!(file, "# Private key data encrypted with AES-256-CBC using"));
+        try!(writeln!(file, "# PBKDF2-HMAC-SHA1 with 4000 iterations and the"));
+        try!(writeln!(file, "# following salt and iv:"));
+        try!(writeln!(file, "!salt: {}", salt.as_slice().to_hex()));
+        try!(writeln!(file, "!iv: {}", iv.as_slice().to_hex()));
+        try!(writeln!(file, ""));
+        try!(writeln!(file, "# The decrypted data consists of concatenated 32-byte"));
+        try!(writeln!(file, "# private keys in the same order as the addresses are"));
+        try!(writeln!(file, "# are listed in this file."));
+        try!(writeln!(file, "!encrypted_data:"));
+
+        for chunk in encrypted_data.as_slice().chunks(32) {
+            try!(writeln!(file, "  {}", chunk.to_hex()));
+        }
+        try!(writeln!(file, ""));
+
+        Ok(())
+    }
+
+    fn encrypt(&self) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
+        static KEY_LENGTH: uint = 32;
+        static SALT_LENGTH: uint = 16;
+        static PKCS5_ITERATIONS: uint = 4000;
+        static IV_LENGTH: uint = 16;
+
+        let salt = openssl::crypto::rand::rand_bytes(SALT_LENGTH);
+        let key = openssl::crypto::pkcs5::pbkdf2_hmac_sha1("asdf", salt.as_slice(),
+                                                           PKCS5_ITERATIONS, KEY_LENGTH);
+        let iv = openssl::crypto::rand::rand_bytes(IV_LENGTH);
+
+        let mut private_data = vec![];
+        for (_, keyring) in self.entries.iter() {
+            for entry in keyring.iter() {
+                let entry = entry.clone(); // TODO: shouldn't have to clone...
+                if entry.private_key.is_none() { continue; }
+                private_data.push_all(entry.private_key.unwrap().get_data());
+            }
+        }
+
+        let ciphertext = openssl::crypto::symm::encrypt(
+            openssl::crypto::symm::AES_256_CBC,
+            key.as_slice(),
+            iv.clone(),
+            private_data.as_slice()
+        );
+
+        (salt, iv, ciphertext)
     }
 
     pub fn gen(&mut self, alias: &str) {
