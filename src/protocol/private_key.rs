@@ -5,7 +5,7 @@ use protocol::public_key::PublicKey;
 use protocol::address::Address;
 
 // Length of a raw Bitcoin private key.
-static LENGTH: uint = 32u;
+pub static LENGTH: uint = 32u;
 
 // This byte must be at the start of any Bitcoin private key that's in Wallet
 // Import Format (WIF).

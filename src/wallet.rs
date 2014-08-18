@@ -7,8 +7,14 @@ use std::io::{File,BufferedReader,IoResult};
 use util::base58;
 use protocol::address::Address;
 use protocol::private_key::PrivateKey;
+use protocol::private_key;
 use wallet_tokenizer::{KeyToken, ValueToken};
 use wallet_tokenizer;
+
+static KEY_LENGTH: uint = 32;
+static SALT_LENGTH: uint = 16;
+static PKCS5_ITERATIONS: uint = 4000;
+static IV_LENGTH: uint = 16;
 
 pub struct Wallet {
     path: Path,
@@ -50,6 +56,8 @@ impl Wallet {
             }
         }
 
+        // TODO: parse encrypted private keys and add them to the wallet.
+
         Ok(wallet)
     }
 
@@ -80,7 +88,7 @@ impl Wallet {
         try!(writeln!(file, "# are listed in this file."));
         try!(writeln!(file, "!encrypted_data:"));
 
-        for chunk in encrypted_data.as_slice().chunks(32) {
+        for chunk in encrypted_data.as_slice().chunks(38) {
             try!(writeln!(file, "  {}", chunk.to_hex()));
         }
         try!(writeln!(file, ""));
@@ -89,11 +97,6 @@ impl Wallet {
     }
 
     fn encrypt(&self) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
-        static KEY_LENGTH: uint = 32;
-        static SALT_LENGTH: uint = 16;
-        static PKCS5_ITERATIONS: uint = 4000;
-        static IV_LENGTH: uint = 16;
-
         let salt = openssl::crypto::rand::rand_bytes(SALT_LENGTH);
         let key = openssl::crypto::pkcs5::pbkdf2_hmac_sha1("asdf", salt.as_slice(),
                                                            PKCS5_ITERATIONS, KEY_LENGTH);
@@ -116,6 +119,20 @@ impl Wallet {
         );
 
         (salt, iv, ciphertext)
+    }
+
+    fn decrypt(&self, salt: &[u8], iv: &[u8], ciphertext: &[u8]) -> Vec<PrivateKey> {
+        let key = openssl::crypto::pkcs5::pbkdf2_hmac_sha1("asdf", salt, PKCS5_ITERATIONS, KEY_LENGTH);
+
+        let plaintext = openssl::crypto::symm::decrypt(
+            openssl::crypto::symm::AES_256_CBC,
+            key.as_slice(), iv.to_vec(), ciphertext
+        );
+
+        let raw_keys = plaintext.as_slice().chunks(private_key::LENGTH);
+        let private_keys = raw_keys.map(|key| PrivateKey::new(key).unwrap()).collect();
+
+        private_keys
     }
 
     pub fn gen(&mut self, alias: &str) {
