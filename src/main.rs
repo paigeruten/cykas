@@ -9,7 +9,7 @@ use wallet::Wallet;
 pub mod protocol;
 pub mod util;
 pub mod wallet;
-pub mod wallet_tokenizer;
+pub mod wallet_parser;
 
 fn main() {
     // Just in case someone comes along and actually tries to *use* this.

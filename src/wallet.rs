@@ -1,15 +1,13 @@
 use openssl;
-use serialize::hex::ToHex;
+use serialize::hex::{ToHex, FromHex};
 
-use std::collections::TreeMap;
 use std::io::{File,BufferedReader,IoResult};
 
 use util::base58;
 use protocol::address::Address;
 use protocol::private_key::PrivateKey;
 use protocol::private_key;
-use wallet_tokenizer::{KeyToken, ValueToken};
-use wallet_tokenizer;
+use wallet_parser;
 
 static KEY_LENGTH: uint = 32;
 static SALT_LENGTH: uint = 16;
@@ -18,7 +16,7 @@ static IV_LENGTH: uint = 16;
 
 pub struct Wallet {
     path: Path,
-    entries: TreeMap<String, Vec<WalletEntry>>
+    entries: Vec<(String, Vec<WalletEntry>)>
 }
 
 #[deriving(Clone)]
@@ -33,26 +31,38 @@ impl Wallet {
             //fail!("Wallet file already exists, will not overwrite!");
         }
 
-        Wallet { path: path.clone(), entries: TreeMap::new() }
+        Wallet { path: path.clone(), entries: Vec::new() }
     }
 
     pub fn load(path: &Path) -> IoResult<Wallet> {
         let file = try!(File::open(path));
         let mut reader = BufferedReader::new(file);
-        let tokens = try!(wallet_tokenizer::tokenize(&mut reader));
+        let parsed = try!(wallet_parser::parse(&mut reader));
 
-        let mut wallet = Wallet { path: path.clone(), entries: TreeMap::new() };
-        let mut current_alias = String::from_str("lost+found");
+        let mut wallet = Wallet { path: path.clone(), entries: Vec::new() };
 
-        for token in tokens.iter() {
-            match *token {
-                KeyToken(ref alias) => { current_alias = alias.clone(); },
-                ValueToken(ref val) => {
-                    let address_data = base58::decode(val.as_slice()).unwrap(); // TODO: handle error.
-                    let address = Address::new(address_data.as_slice()).unwrap(); // TODO: handle error.
-                    let wallet_entry = WalletEntry { address: address, private_key: None };
-                    wallet.add(current_alias.clone(), vec![wallet_entry]);
+        let mut salt = None;
+        let mut iv = None;
+        let mut encrypted_data = None;
+
+        for (key, values) in parsed.move_iter() {
+            if key.as_slice().starts_with("!") {
+                if key.as_slice() == "!salt" {
+                    salt = values.concat().as_slice().from_hex().ok();
+                } else if key.as_slice() == "!iv" {
+                    iv = values.concat().as_slice().from_hex().ok();
+                } else if key.as_slice() == "!encrypted_data" {
+                    encrypted_data = values.concat().as_slice().from_hex().ok();
+                } else {
+                    fail!(); // TODO: handle error.
                 }
+            } else {
+                let entries = values.iter().map(|value| {
+                    let address_data = base58::decode(value.as_slice()).unwrap(); // TODO: handle error.
+                    let address = Address::new(address_data.as_slice()).unwrap(); // TODO: handle error.
+                    WalletEntry { address: address, private_key: None }
+                }).collect();
+                wallet.entries.push((key, entries));
             }
         }
 
@@ -69,7 +79,7 @@ impl Wallet {
 
         let mut file = try!(File::create(&self.path));
 
-        for (alias, entries) in self.entries.iter() {
+        for &(ref alias, ref entries) in self.entries.iter() {
             try!(writeln!(file, "{}:", alias));
             for entry in entries.iter() {
                 try!(writeln!(file, "  {}", base58::encode(entry.address.get_data())));
@@ -103,7 +113,7 @@ impl Wallet {
         let iv = openssl::crypto::rand::rand_bytes(IV_LENGTH);
 
         let mut private_data = vec![];
-        for (_, keyring) in self.entries.iter() {
+        for &(_, ref keyring) in self.entries.iter() {
             for entry in keyring.iter() {
                 let entry = entry.clone(); // TODO: shouldn't have to clone...
                 if entry.private_key.is_none() { continue; }
@@ -147,15 +157,15 @@ impl Wallet {
                 WalletEntry { address: address, private_key: Some(private_key) }
             }).collect();
 
-        self.add(alias.to_string(), entries);
-    }
-
-    fn add(&mut self, alias: String, entries: Vec<WalletEntry>) {
-        if !self.entries.contains_key(&alias) {
-            self.entries.insert(alias, entries);
-        } else {
-            let keyring = self.entries.find_mut(&alias).unwrap();
-            keyring.push_all(entries.as_slice());
+        let index = self.entries.iter().position(|&(ref key, _)| key.as_slice() == alias);
+        match index {
+            Some(idx) => {
+                let &(_, ref mut values) = self.entries.get_mut(idx);
+                values.push_all(entries.as_slice());
+            },
+            None => {
+                self.entries.push((alias.to_string(), entries));
+            }
         }
     }
 }
