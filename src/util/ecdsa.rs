@@ -5,15 +5,19 @@ use std::ptr;
 static NID_secp256k1: int = 714;
 
 #[allow(non_camel_case_types)]
+#[repr(C)]
 struct EC_GROUP;
 
 #[allow(non_camel_case_types)]
+#[repr(C)]
 struct EC_POINT;
 
 #[allow(non_camel_case_types)]
+#[repr(C)]
 struct BIGNUM;
 
 #[allow(non_camel_case_types)]
+#[repr(C)]
 struct BN_CTX;
 
 #[allow(non_camel_case_types)]

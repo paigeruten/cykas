@@ -2,11 +2,11 @@
 name = "cykas"
 version = "0.0.1"
 dependencies = [
- "openssl 0.0.0 (git+https://github.com/sfackler/rust-openssl.git#182ec4a6e77a53381e8b5e161f5d9c8fb3d965ff)",
+ "openssl 0.0.0 (git+https://github.com/sfackler/rust-openssl.git#07f12370d3644673e8811f93485cddccead22590)",
 ]
 
 [[package]]
 name = "openssl"
 version = "0.0.0"
-source = "git+https://github.com/sfackler/rust-openssl.git#182ec4a6e77a53381e8b5e161f5d9c8fb3d965ff"
+source = "git+https://github.com/sfackler/rust-openssl.git#07f12370d3644673e8811f93485cddccead22590"
 
