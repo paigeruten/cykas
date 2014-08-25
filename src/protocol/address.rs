@@ -20,7 +20,7 @@ static VERSION_BYTE: u8 = 0x00;
 //
 // Where `v` is the version byte, `h` is a 20-byte hash of the public key, and
 // `c` is the 4-byte checksum.
-#[deriving(Clone)]
+#[deriving(Clone, PartialEq, Show)]
 pub struct Address(Vec<u8>);
 
 impl Address {

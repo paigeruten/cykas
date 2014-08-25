@@ -17,19 +17,16 @@ fn main() {
     println!("want to, then make sure to read and understand all of the code first.");
     println!("---");
 
-    /*let wallet = match Wallet::load(&Path::new("WALLET.txt")) {
+    let mut wallet = match Wallet::load(&Path::new("WALLET.txt")) {
         Ok(w) => w,
-        Err(e) => { println!("Error: {}", e); fail!(); }
+        Err(_) => Wallet::new(&Path::new("WALLET.txt"))
     };
+
+    wallet.gen("test");
 
     match wallet.save() {
         Ok(()) => println!("WALLET.txt saved."),
         Err(e) => println!("Error: {}", e)
-    }*/
-
-    let mut wallet = Wallet::new(&Path::new("WALLET.txt"));
-    wallet.gen("main");
-    wallet.gen_multiple("change", 5);
-    wallet.save();
+    }
 }
 

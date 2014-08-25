@@ -15,7 +15,7 @@ static FORMAT_BYTE: u8 = 0x04;
 //
 // Where `c` is the byte 0x04 signifying that the public key is in uncompressed
 // format, and `x` and `y` are the 32-byte X and Y coordinates.
-#[deriving(Clone)]
+#[deriving(Clone, PartialEq, Show)]
 pub struct PublicKey(Vec<u8>);
 
 impl PublicKey {

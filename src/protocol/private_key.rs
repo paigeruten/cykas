@@ -30,7 +30,7 @@ static ZERO: &'static [u8] = &[
 
 // Represents a raw Bitcoin private key, consisting of 32 bytes of data which
 // must be greater than `ZERO` and no greater than `MAX`, as defined above.
-#[deriving(Clone)]
+#[deriving(Clone, PartialEq, Show)]
 pub struct PrivateKey(Vec<u8>);
 
 impl PrivateKey {

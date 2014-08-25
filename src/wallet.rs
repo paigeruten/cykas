@@ -28,7 +28,7 @@ struct WalletEntry {
 impl Wallet {
     pub fn new(path: &Path) -> Wallet {
         if path.exists() {
-            //fail!("Wallet file already exists, will not overwrite!");
+            fail!("Wallet file already exists, will not overwrite!");
         }
 
         Wallet { path: path.clone(), entries: Vec::new() }
@@ -66,7 +66,28 @@ impl Wallet {
             }
         }
 
-        // TODO: parse encrypted private keys and add them to the wallet.
+        if encrypted_data.is_none() {
+            fail!(); // TODO: handle error.
+        } else if salt.is_none() {
+            fail!(); // TODO: handle error.
+        } else if iv.is_none() {
+            fail!(); // TODO: handle error.
+        }
+
+        let private_keys = wallet.decrypt(salt.unwrap().as_slice(),
+                                          iv.unwrap().as_slice(),
+                                          encrypted_data.unwrap().as_slice());
+
+        let mut private_keys_iter = private_keys.move_iter();
+
+        for &(_, ref mut entries) in wallet.entries.mut_iter() {
+            for entry in entries.mut_iter() {
+                let private_key = private_keys_iter.next().unwrap(); // TODO: handle error.
+                assert_eq!(private_key.to_address(), entry.address); // TODO: handle error.
+
+                entry.private_key = Some(private_key);
+            }
+        }
 
         Ok(wallet)
     }
