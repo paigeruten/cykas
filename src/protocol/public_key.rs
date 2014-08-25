@@ -1,3 +1,5 @@
+//! Bitcoin public key representation.
+
 use util::ecdsa;
 use protocol::private_key::PrivateKey;
 use protocol::address::Address;
@@ -8,19 +10,19 @@ static LENGTH: uint = 65u;
 // Initial byte of a public key, signifying it's in uncompressed format.
 static FORMAT_BYTE: u8 = 0x04;
 
-// Represents a raw Bitcoin public key. The bytes of a public key are laid out
-// like this:
-//
-//     cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
-//
-// Where `c` is the byte 0x04 signifying that the public key is in uncompressed
-// format, and `x` and `y` are the 32-byte X and Y coordinates.
+/// Represents a raw Bitcoin public key. The bytes of a public key are laid out
+/// like this:
+///
+///     cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+///
+/// Where `c` is the byte 0x04 signifying that the public key is in
+/// uncompressed format, and `x` and `y` are the 32-byte X and Y coordinates.
 #[deriving(Clone, PartialEq, Show)]
 pub struct PublicKey(Vec<u8>);
 
 impl PublicKey {
-    // Creates a PublicKey from raw data. Returns None if the data is not a
-    // valid Bitcoin public key.
+    /// Creates a PublicKey from raw data. Returns None if the data is not a
+    /// valid Bitcoin public key.
     pub fn new(data: &[u8]) -> Option<PublicKey> {
         if PublicKey::is_valid(data) {
             Some(PublicKey(data.to_vec()))
@@ -35,18 +37,18 @@ impl PublicKey {
         data[0] == FORMAT_BYTE
     }
 
-    // Creates a PublicKey from a PrivateKey.
+    /// Creates a PublicKey from a PrivateKey.
     pub fn from_private_key(private_key: &PrivateKey) -> PublicKey {
         PublicKey(ecdsa::derive_public_key(private_key.get_data()))
     }
 
-    // Gets the raw public key as a slice of bytes.
+    /// Gets the raw public key as a slice of bytes.
     pub fn get_data(&self) -> &[u8] {
         let PublicKey(ref data) = *self;
         data.as_slice()
     }
 
-    // Derives the address from the public key.
+    /// Derives the address from the public key.
     pub fn to_address(&self) -> Address {
         Address::from_public_key(self)
     }

@@ -1,3 +1,5 @@
+//! Base-58 encoding and decoding.
+
 use std::num::Zero;
 use num::bigint::{BigUint,ToBigUint};
 use num::Integer;
@@ -5,7 +7,7 @@ use num::Integer;
 // Bitcoin's base-58 alphabet.
 static ALPHABET: &'static str = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
-// Encode a slice of bytes as base-58, preserving leading zero bytes.
+/// Encode a slice of bytes as base-58, preserving leading zero bytes.
 pub fn encode(data: &[u8]) -> String {
     // Count the leading zeroes.
     let num_zeroes = data.iter().take_while(|byte| byte.is_zero()).count();
@@ -33,8 +35,8 @@ pub fn encode(data: &[u8]) -> String {
     result.append(base58.as_slice())
 }
 
-// Decode a base-58 string into a vector of bytes, preserving leading zero
-// bytes. Returns None if the string contains non-base-58 characters.
+/// Decode a base-58 string into a vector of bytes, preserving leading zero
+/// bytes. Returns None if the string contains non-base-58 characters.
 pub fn decode(string: &str) -> Option<Vec<u8>> {
     // Count the leading zeroes ('1' characters in base-58).
     let num_zeroes = string.chars().take_while(|ch| *ch == '1').count();
@@ -64,7 +66,7 @@ pub fn decode(string: &str) -> Option<Vec<u8>> {
     Some(result)
 }
 
-// Encode a number as base-58.
+/// Encode a number as base-58.
 pub fn simple_encode(mut n: BigUint) -> String {
     let mut result = String::new();
     let fifty_eight = 58u.to_biguint().unwrap();
@@ -78,8 +80,8 @@ pub fn simple_encode(mut n: BigUint) -> String {
     result.as_slice().chars().rev().collect()
 }
 
-// Decode a base-58 string into a number. Returns None if the string contains
-// non-base-58 characters.
+/// Decode a base-58 string into a number. Returns None if the string contains
+/// non-base-58 characters.
 pub fn simple_decode(string: &str) -> Option<BigUint> {
     let mut result: BigUint = 0u.to_biguint().unwrap();
     let mut multiplier: BigUint = 1u.to_biguint().unwrap();

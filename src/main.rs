@@ -1,3 +1,5 @@
+//! Cykas is (not yet!) a secure offline Bitcoin wallet.
+
 extern crate debug; // temporary
 extern crate openssl;
 extern crate num;

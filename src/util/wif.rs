@@ -1,10 +1,12 @@
+//! Bitcoin Wallet Import Format (WIF) encoding, decoding, and checking.
+
 use openssl;
 use openssl::crypto::hash::SHA256;
 
 // The length of checksums used in the Wallet Import Format.
 static CHECKSUM_LENGTH: uint = 4;
 
-// Encode the given data in Wallet Import Format.
+/// Encode the given data in Wallet Import Format.
 pub fn encode(data: &[u8], version_byte: u8) -> Vec<u8> {
     let mut result = Vec::with_capacity(1 + data.len() + CHECKSUM_LENGTH);
 
@@ -17,8 +19,8 @@ pub fn encode(data: &[u8], version_byte: u8) -> Vec<u8> {
     result
 }
 
-// Decode the given data from Wallet Import Format, by validating the version
-// byte and checksum, and then stripping those off and returning what's left.
+/// Decode the given data from Wallet Import Format, by validating the version
+/// byte and checksum, and then stripping those off and returning what's left.
 pub fn decode(data: &[u8], version_byte: u8) -> Option<Vec<u8>> {
     let valid = data.len() >= 1 + CHECKSUM_LENGTH &&
                 data[0] == version_byte &&
@@ -31,8 +33,8 @@ pub fn decode(data: &[u8], version_byte: u8) -> Option<Vec<u8>> {
     }
 }
 
-// Checks whether the given data satisfies the checksum. (Assumes the last four
-// bytes of the slice is the checksum.)
+/// Checks whether the given data satisfies the checksum. (Assumes the last four
+/// bytes of the slice is the checksum.)
 pub fn check(data: &[u8]) -> bool {
     assert!(data.len() > CHECKSUM_LENGTH);
     let (payload, given_checksum) = data.split_at(data.len() - CHECKSUM_LENGTH);

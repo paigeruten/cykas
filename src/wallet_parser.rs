@@ -1,3 +1,6 @@
+//! Simple parser for a very simple key-values file format used by Cykas
+//! wallets.
+
 use std::io::{Buffer, IoResult, IoError, OtherIoError};
 
 // There are only two tokens to worry about in Cykas' wallet file format: keys
@@ -8,8 +11,8 @@ enum Token {
     ValueToken(String)
 }
 
-// Tokenizes the given Buffer and parses that into a Vec that maps String keys
-// to vectors of Strings. Returns an IoError on failure.
+/// Tokenizes the given Buffer and parses that into a Vec that maps String keys
+/// to vectors of Strings. Returns an IoError on failure.
 pub fn parse<T: Buffer>(input: &mut T) -> IoResult<Vec<(String, Vec<String>)>> {
     let tokens = try!(tokenize(input));
     let mut tokens_iter = tokens.move_iter();

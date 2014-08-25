@@ -1,3 +1,5 @@
+//! Contains Bitcoin private keys grouped by aliases.
+
 use openssl;
 use serialize::hex::{ToHex, FromHex};
 

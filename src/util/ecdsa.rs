@@ -1,3 +1,5 @@
+//! Functions that work with elliptic curve keys and signatures.
+
 use libc::{c_int, c_uchar, size_t};
 use std::ptr;
 
@@ -55,9 +57,9 @@ extern {
     fn BN_CTX_free(c: *mut BN_CTX);
 }
 
-// Takes a 32-byte Bitcoin private key, and derives the 65-byte uncompressed
-// public key from it. Assumes the private key is valid, i.e. is 32 bytes long
-// and falls within the range defined in `src/protocol/private_key.rs`.
+/// Takes a 32-byte Bitcoin private key, and derives the 65-byte uncompressed
+/// public key from it. Assumes the private key is valid, i.e. is 32 bytes long
+/// and falls within the range defined in `src/protocol/private_key.rs`.
 pub fn derive_public_key(private_key: &[u8]) -> Vec<u8> {
     assert!(private_key.len() == 32u);
     unsafe {

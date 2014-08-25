@@ -1,10 +1,12 @@
+//! Bitcoin private key representation.
+
 use openssl;
 
 use util::wif;
 use protocol::public_key::PublicKey;
 use protocol::address::Address;
 
-// Length of a raw Bitcoin private key.
+/// Length of a raw Bitcoin private key.
 pub static LENGTH: uint = 32u;
 
 // This byte must be at the start of any Bitcoin private key that's in Wallet
@@ -28,14 +30,14 @@ static ZERO: &'static [u8] = &[
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 ];
 
-// Represents a raw Bitcoin private key, consisting of 32 bytes of data which
-// must be greater than `ZERO` and no greater than `MAX`, as defined above.
+/// Represents a raw Bitcoin private key, consisting of 32 bytes of data which
+/// must be greater than `ZERO` and no greater than `MAX`, as defined above.
 #[deriving(Clone, PartialEq, Show)]
 pub struct PrivateKey(Vec<u8>);
 
 impl PrivateKey {
-    // Creates a PrivateKey from raw data. Returns None if the data is not a
-    // valid Bitcoin private key.
+    /// Creates a PrivateKey from raw data. Returns None if the data is not a
+    /// valid Bitcoin private key.
     pub fn new(data: &[u8]) -> Option<PrivateKey> {
         if PrivateKey::is_valid(data) {
             Some(PrivateKey(data.to_vec()))
@@ -44,8 +46,8 @@ impl PrivateKey {
         }
     }
 
-    // Generates a random Bitcoin private key securely, using openssl's random
-    // bytes generator.
+    /// Generates a random Bitcoin private key securely, using openssl's random
+    /// bytes generator.
     pub fn generate() -> PrivateKey {
         loop {
             // Just generate 32 random bytes. The result is almost certainly a
@@ -65,13 +67,13 @@ impl PrivateKey {
         data.as_slice() <= MAX
     }
 
-    // Decodes the given Wallet Import Format (WIF) raw data into a PrivateKey.
-    // The bytes of a WIF private key are laid out like this:
-    //
-    //     vkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkcccc
-    //
-    // Where `v` is the version byte, `k` is the 32-byte private key, and `c`
-    // is the 4-byte checksum.
+    /// Decodes the given Wallet Import Format (WIF) raw data into a
+    /// PrivateKey. The bytes of a WIF private key are laid out like this:
+    ///
+    ///     vkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkcccc
+    ///
+    /// Where `v` is the version byte, `k` is the 32-byte private key, and `c`
+    /// is the 4-byte checksum.
     pub fn from_wif(data: &[u8]) -> Option<PrivateKey> {
         let key = wif::decode(data, VERSION_BYTE);
 
@@ -85,24 +87,24 @@ impl PrivateKey {
         None
     }
 
-    // Gets the raw private key as a slice of bytes.
+    /// Gets the raw private key as a slice of bytes.
     pub fn get_data(&self) -> &[u8] {
         let PrivateKey(ref data) = *self;
         data.as_slice()
     }
 
-    // Converts the private key to Wallet Import Format (WIF), as raw bytes.
-    // See from_wif() for details on the format.
+    /// Converts the private key to Wallet Import Format (WIF), as raw bytes.
+    /// See from_wif() for details on the format.
     pub fn to_wif(&self) -> Vec<u8> {
         wif::encode(self.get_data().as_slice(), VERSION_BYTE)
     }
 
-    // Derives the public key from the given private key.
+    /// Derives the public key from the given private key.
     pub fn to_public_key(&self) -> PublicKey {
         PublicKey::from_private_key(self)
     }
 
-    // Derives the address from the given private key.
+    /// Derives the address from the given private key.
     pub fn to_address(&self) -> Address {
         Address::from_private_key(self)
     }

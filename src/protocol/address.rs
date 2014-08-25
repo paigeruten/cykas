@@ -1,3 +1,5 @@
+//! Bitcoin address representation.
+
 use openssl;
 use openssl::crypto::hash::{SHA256, RIPEMD160};
 
@@ -13,19 +15,19 @@ static LENGTH: uint = 25;
 // with a one.)
 static VERSION_BYTE: u8 = 0x00;
 
-// Represents a raw Bitcoin address. The bytes of an address are laid out like
-// this:
-//
-//     vhhhhhhhhhhhhhhhhhhhhcccc
-//
-// Where `v` is the version byte, `h` is a 20-byte hash of the public key, and
-// `c` is the 4-byte checksum.
+/// Represents a raw Bitcoin address. The bytes of an address are laid out like
+/// this:
+///
+///     vhhhhhhhhhhhhhhhhhhhhcccc
+///
+/// Where `v` is the version byte, `h` is a 20-byte hash of the public key, and
+/// `c` is the 4-byte checksum.
 #[deriving(Clone, PartialEq, Show)]
 pub struct Address(Vec<u8>);
 
 impl Address {
-    // Creates an Address from raw data. Returns None if the data is not a
-    // valid Bitcoin address.
+    /// Creates an Address from raw data. Returns None if the data is not a
+    /// valid Bitcoin address.
     pub fn new(data: &[u8]) -> Option<Address> {
         if Address::is_valid(data) {
             Some(Address(data.to_vec()))
@@ -41,7 +43,7 @@ impl Address {
         wif::check(data)
     }
 
-    // Creates an Address from a PublicKey.
+    /// Creates an Address from a PublicKey.
     pub fn from_public_key(public_key: &PublicKey) -> Address {
         // The meat of a Bitcoin address is a RIPEMD-160 hash of a SHA-256 hash
         // of the public key.
@@ -55,13 +57,13 @@ impl Address {
         Address(data)
     }
 
-    // Creates an Address from a PrivateKey.
+    /// Creates an Address from a PrivateKey.
     pub fn from_private_key(private_key: &PrivateKey) -> Address {
         let public_key = PublicKey::from_private_key(private_key);
         Address::from_public_key(&public_key)
     }
 
-    // Gets the raw address as a slice of bytes.
+    /// Gets the raw address as a slice of bytes.
     pub fn get_data(&self) -> &[u8] {
         let Address(ref data) = *self;
         data.as_slice()
