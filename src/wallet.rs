@@ -1,9 +1,9 @@
-//! Contains Bitcoin private keys grouped by aliases.
+//! A Wallet contains Bitcoin private keys and addresses, grouped by aliases.
 
 use openssl;
 use serialize::hex::{ToHex, FromHex};
 
-use std::io::{File,BufferedReader,IoResult};
+use std::io::{File, BufferedReader, IoResult, IoError, OtherIoError};
 
 use util::base58;
 use protocol::address::Address;
@@ -11,16 +11,30 @@ use protocol::private_key::PrivateKey;
 use protocol::private_key;
 use wallet_parser;
 
-static KEY_LENGTH: uint = 32;
-static SALT_LENGTH: uint = 16;
-static PKCS5_ITERATIONS: uint = 4000;
-static IV_LENGTH: uint = 16;
+// The length of the private key that the PKCS5 algorithm should generate.
+static PKCS5_KEY_LENGTH: uint = 32;
 
+// The length of the random salt that the PKCS5 algorithm should use.
+static PKCS5_SALT_LENGTH: uint = 16;
+
+// The number of iterations the PKCS5 algorithm should use.
+static PKCS5_ITERATIONS: uint = 4000;
+
+// The length of the random initialization vector (IV) that the AES algorithm
+// should use.
+static AES_IV_LENGTH: uint = 16;
+
+/// A Wallet contains a Path to the wallet file, and groups of addresses and
+/// private keys that are associated with aliases.
 pub struct Wallet {
     path: Path,
     entries: Vec<(String, Vec<WalletEntry>)>
 }
 
+
+// A WalletEntry contains a Bitcoin address and the associated private key, if
+// it's available. (If the private key for an address isn't found in the
+// encrypted part of the wallet file, then a warning should be displayed.)
 #[deriving(Clone)]
 struct WalletEntry {
     address: Address,
@@ -28,14 +42,19 @@ struct WalletEntry {
 }
 
 impl Wallet {
+    /// Creates a blank Wallet at the given Path. Fails if the wallet file at
+    /// that Path already exists, so as not to overwrite it.
     pub fn new(path: &Path) -> Wallet {
         if path.exists() {
-            fail!("Wallet file already exists, will not overwrite!");
+            fail!("Wallet file '{}' already exists, will not overwrite!", path.display());
         }
 
         Wallet { path: path.clone(), entries: Vec::new() }
     }
 
+    /// Loads a Wallet from the given wallet file Path. Returns an IoError on
+    /// failure, and specifically an OtherIoError if the contents of the file
+    /// are invalid.
     pub fn load(path: &Path) -> IoResult<Wallet> {
         let file = try!(File::open(path));
         let mut reader = BufferedReader::new(file);
@@ -94,6 +113,7 @@ impl Wallet {
         Ok(wallet)
     }
 
+    /// Saves the Wallet to its wallet file. Returns an IoError on failure.
     pub fn save(&self) -> IoResult<()> {
         // TODO: make a backup copy first, to delete when the new file is
         // closed.
@@ -129,11 +149,13 @@ impl Wallet {
         Ok(())
     }
 
+    // Helper function for Wallet::save(). Encrypts the private keys in the
+    // Wallet and returns a tuple containing the salt, iv, and ciphertext.
     fn encrypt(&self) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
-        let salt = openssl::crypto::rand::rand_bytes(SALT_LENGTH);
+        let salt = openssl::crypto::rand::rand_bytes(PKCS5_SALT_LENGTH);
         let key = openssl::crypto::pkcs5::pbkdf2_hmac_sha1("asdf", salt.as_slice(),
-                                                           PKCS5_ITERATIONS, KEY_LENGTH);
-        let iv = openssl::crypto::rand::rand_bytes(IV_LENGTH);
+                                                           PKCS5_ITERATIONS, PKCS5_KEY_LENGTH);
+        let iv = openssl::crypto::rand::rand_bytes(AES_IV_LENGTH);
 
         let mut private_data = vec![];
         for &(_, ref keyring) in self.entries.iter() {
@@ -154,8 +176,13 @@ impl Wallet {
         (salt, iv, ciphertext)
     }
 
+    // Helper function for Wallet::load(). Decrypts the given ciphertext with
+    // the given salt and iv, and returns a vector of Bitcoin private keys.
     fn decrypt(&self, salt: &[u8], iv: &[u8], ciphertext: &[u8]) -> Vec<PrivateKey> {
-        let key = openssl::crypto::pkcs5::pbkdf2_hmac_sha1("asdf", salt, PKCS5_ITERATIONS, KEY_LENGTH);
+        let key = openssl::crypto::pkcs5::pbkdf2_hmac_sha1("asdf", salt, PKCS5_ITERATIONS, PKCS5_KEY_LENGTH);
+
+        assert_eq!(salt.len(), PKCS5_SALT_LENGTH); // TODO: handle error.
+        assert_eq!(iv.len(), AES_IV_LENGTH); // TODO: handle error.
 
         let plaintext = openssl::crypto::symm::decrypt(
             openssl::crypto::symm::AES_256_CBC,
@@ -168,10 +195,14 @@ impl Wallet {
         private_keys
     }
 
+    /// Generates a single private key, appending it to the keyring with the
+    /// given alias.
     pub fn gen(&mut self, alias: &str) {
         self.gen_multiple(alias, 1);
     }
 
+    /// Generates `n` private keys, appending them to the keyring with the
+    /// given alias.
     pub fn gen_multiple(&mut self, alias: &str, n: uint) {
         let entries: Vec<WalletEntry> =
             range(0, n).map(|_| {
