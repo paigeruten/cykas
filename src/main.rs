@@ -6,6 +6,8 @@ extern crate num;
 extern crate libc;
 extern crate serialize;
 
+use std::io::{IoError, OtherIoError};
+
 use wallet::Wallet;
 
 pub mod protocol;
@@ -21,6 +23,7 @@ fn main() {
 
     let mut wallet = match Wallet::load(&Path::new("WALLET.txt")) {
         Ok(w) => w,
+        Err(IoError { kind: OtherIoError, desc: desc, detail: detail }) => fail!("Error: {}: {}", desc, detail.unwrap()),
         Err(_) => Wallet::new(&Path::new("WALLET.txt"))
     };
 

@@ -1,5 +1,7 @@
 //! A Wallet contains Bitcoin private keys and addresses, grouped by aliases.
 
+// TODO: write tests for each error that is handled by Wallet::load(), etc.
+
 use openssl;
 use serialize::hex::{ToHex, FromHex};
 
@@ -30,7 +32,6 @@ pub struct Wallet {
     path: Path,
     entries: Vec<(String, Vec<WalletEntry>)>
 }
-
 
 // A WalletEntry contains a Bitcoin address and the associated private key, if
 // it's available. (If the private key for an address isn't found in the
@@ -75,24 +76,61 @@ impl Wallet {
                 } else if key.as_slice() == "!encrypted_data" {
                     encrypted_data = values.concat().as_slice().from_hex().ok();
                 } else {
-                    fail!(); // TODO: handle error.
+                    return Err(IoError {
+                        kind: OtherIoError,
+                        desc: "invalid special key",
+                        detail: Some(format!("Unexpected key '{}' in wallet file", key))
+                    });
                 }
             } else {
-                let entries = values.iter().map(|value| {
-                    let address_data = base58::decode(value.as_slice()).unwrap(); // TODO: handle error.
-                    let address = Address::new(address_data.as_slice()).unwrap(); // TODO: handle error.
-                    WalletEntry { address: address, private_key: None }
-                }).collect();
+                let mut entries = Vec::with_capacity(values.len());
+
+                for value in values.iter() {
+                    let address_data = base58::decode(value.as_slice());
+                    let address = match address_data {
+                        Some(data) => Address::new(data.as_slice()),
+                        None => {
+                            return Err(IoError {
+                                kind: OtherIoError,
+                                desc: "invalid base-58 string",
+                                detail: Some(format!("Address '{}' is not a valid base-58 string", value))
+                            });
+                        }
+                    };
+
+                    if address.is_some() {
+                        entries.push(WalletEntry { address: address.unwrap(), private_key: None });
+                    } else {
+                        return Err(IoError {
+                            kind: OtherIoError,
+                            desc: "invalid address",
+                            detail: Some(format!("Address '{}' is not a valid Bitcoin address", value))
+                        });
+                    }
+                }
+
                 wallet.entries.push((key, entries));
             }
         }
 
         if encrypted_data.is_none() {
-            fail!(); // TODO: handle error.
+            return Err(IoError {
+                kind: OtherIoError,
+                desc: "encrypted data not found or invalid",
+                detail: Some(format!("'!encrypted_data' field not found or invalid"))
+            });
         } else if salt.is_none() {
-            fail!(); // TODO: handle error.
+            return Err(IoError {
+                kind: OtherIoError,
+                desc: "salt not found or invalid",
+                detail: Some(format!("'!salt' field not found or invalid"))
+            });
         } else if iv.is_none() {
-            fail!(); // TODO: handle error.
+            return Err(IoError {
+                kind: OtherIoError,
+                desc: "iv not found or invalid",
+                detail: Some(format!("'!iv' field not found or invalid"))
+            });
         }
 
         let private_keys = wallet.decrypt(salt.unwrap().as_slice(),
@@ -103,8 +141,26 @@ impl Wallet {
 
         for &(_, ref mut entries) in wallet.entries.mut_iter() {
             for entry in entries.mut_iter() {
-                let private_key = private_keys_iter.next().unwrap(); // TODO: handle error.
-                assert_eq!(private_key.to_address(), entry.address); // TODO: handle error.
+                let private_key = private_keys_iter.next();
+
+                if private_key.is_none() {
+                    return Err(IoError {
+                        kind: OtherIoError,
+                        desc: "missing private key",
+                        detail: Some(format!("There are more addresses than private keys in the wallet file"))
+                    });
+                }
+
+                let private_key = private_key.unwrap();
+
+                if private_key.to_address() != entry.address {
+                    return Err(IoError {
+                        kind: OtherIoError,
+                        desc: "address and private key mismatch",
+                        detail: Some(format!("The private key given for '{}' is wrong",
+                                             base58::encode(entry.address.get_data())))
+                    });
+                }
 
                 entry.private_key = Some(private_key);
             }

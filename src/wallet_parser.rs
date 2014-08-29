@@ -22,24 +22,22 @@ pub fn parse<T: Buffer>(input: &mut T) -> IoResult<Vec<(String, Vec<String>)>> {
         match token {
             KeyToken(key) => {
                 if result.iter().any(|&(ref alias, _)| *alias == key) {
-                    let error = IoError {
+                    return Err(IoError {
                         kind: OtherIoError,
                         desc: "unexpected key",
                         detail: Some(format!("Key '{}' used more than once in wallet file", key))
-                    };
-                    return Err(error);
+                    });
                 }
 
                 result.push((key, Vec::new()));
             }
             ValueToken(val) => {
                 if result.is_empty() {
-                    let error = IoError {
+                    return Err(IoError {
                         kind: OtherIoError,
                         desc: "unexpected value",
                         detail: Some(format!("Wallet file starts with a value instead of a key"))
-                    };
-                    return Err(error);
+                    });
                 }
 
                 let index_last = result.len() - 1;
@@ -90,12 +88,11 @@ fn tokenize<T: Buffer>(input: &mut T) -> IoResult<Vec<Token>> {
         } else if ch == ':' && current_token.is_some() {
             tokens.push(KeyToken(current_token.take_unwrap()));
         } else {
-            let error = IoError {
+            return Err(IoError {
                 kind: OtherIoError,
                 desc: "unexpected input",
                 detail: Some(format!("Unexpected char '{}' on line {}", ch, line_num))
-            };
-            return Err(error);
+            });
         }
     }
 
