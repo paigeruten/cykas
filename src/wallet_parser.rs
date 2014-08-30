@@ -71,22 +71,22 @@ fn tokenize<T: Buffer>(input: &mut T) -> IoResult<Vec<Token>> {
         if ch == '#' {
             in_comment = true;
             if current_token.is_some() {
-                tokens.push(ValueToken(current_token.take_unwrap()));
+                tokens.push(ValueToken(current_token.take().unwrap()));
             }
         } else if ch.is_whitespace() {
             if current_token.is_some() {
-                tokens.push(ValueToken(current_token.take_unwrap()));
+                tokens.push(ValueToken(current_token.take().unwrap()));
             }
         } else if ch.is_alphanumeric() || ch == '_' || ch == '!' {
             if current_token.is_some() {
-                let mut token_string = current_token.take_unwrap();
+                let mut token_string = current_token.take().unwrap();
                 token_string.push_char(ch);
                 current_token = Some(token_string);
             } else {
                 current_token = Some(ch.to_string());
             }
         } else if ch == ':' && current_token.is_some() {
-            tokens.push(KeyToken(current_token.take_unwrap()));
+            tokens.push(KeyToken(current_token.take().unwrap()));
         } else {
             return Err(IoError {
                 kind: OtherIoError,
@@ -97,7 +97,7 @@ fn tokenize<T: Buffer>(input: &mut T) -> IoResult<Vec<Token>> {
     }
 
     if current_token.is_some() {
-        tokens.push(ValueToken(current_token.take_unwrap()));
+        tokens.push(ValueToken(current_token.take().unwrap()));
     }
 
     Ok(tokens)
