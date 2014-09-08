@@ -6,14 +6,20 @@ extern crate num;
 extern crate libc;
 extern crate serialize;
 
-use std::io::{IoError, OtherIoError};
-
-use wallet::Wallet;
+use std::os;
 
 pub mod protocol;
 pub mod util;
 pub mod wallet;
 pub mod wallet_parser;
+pub mod commands;
+
+fn print_usage() {
+    println!("Usage: cykas <command> [args...]");
+    println!("");
+    println!("Available commands:");
+    println!("  new [path]            Create a new wallet");
+}
 
 fn main() {
     // Just in case someone comes along and actually tries to *use* this.
@@ -21,17 +27,19 @@ fn main() {
     println!("want to, then make sure to read and understand all of the code first.");
     println!("---");
 
-    let mut wallet = match Wallet::load(&Path::new("WALLET.txt")) {
-        Ok(w) => w,
-        Err(IoError { kind: OtherIoError, desc: desc, detail: detail }) => fail!("Error: {}: {}", desc, detail.unwrap()),
-        Err(_) => Wallet::new(&Path::new("WALLET.txt"))
-    };
+    let args = os::args();
 
-    wallet.gen("test");
+    if args.len() < 2 {
+        print_usage();
+    } else {
+        let command = args[1].as_slice();
+        let args_rest = args.slice_from(2);
 
-    match wallet.save() {
-        Ok(()) => println!("WALLET.txt saved."),
-        Err(e) => println!("Error: {}", e)
+        if command == "new" {
+            commands::new::run(args_rest);
+        } else {
+            println!("'{}' is not a valid command!", command);
+        }
     }
 }
 
