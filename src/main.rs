@@ -14,11 +14,11 @@ pub mod wallet;
 pub mod wallet_parser;
 pub mod commands;
 
-fn print_usage() {
-    println!("Usage: cykas <command> [args...]");
+fn print_usage(program: &str) {
+    println!("Usage: {} <command> [args...]", program);
     println!("");
     println!("Available commands:");
-    println!("  new [path]            Create a new wallet");
+    println!("  new            Create a new wallet");
 }
 
 fn main() {
@@ -28,15 +28,19 @@ fn main() {
     println!("---");
 
     let args = os::args();
+    let program = args[0].clone();
 
     if args.len() < 2 {
-        print_usage();
+        print_usage(program.as_slice());
     } else {
         let command = args[1].as_slice();
         let args_rest = args.slice_from(2);
 
+        // TODO: change this with an option.
+        let wallet_path = Path::new("WALLET.txt");
+
         if command == "new" {
-            commands::new::run(args_rest);
+            commands::new::run(wallet_path, args_rest);
         } else {
             println!("'{}' is not a valid command!", command);
         }

@@ -1,16 +1,12 @@
 use wallet::Wallet;
 
-pub fn run(args: &[String]) {
-    let path = if args.len() == 1 {
-        Path::new(args[0].as_slice())
-    } else {
-        Path::new("WALLET.txt")
-    };
+pub fn run(wallet_path: Path, args: &[String]) {
+    assert!(args.is_empty());
 
-    let wallet = Wallet::new(&path);
+    let wallet = Wallet::new(&wallet_path);
 
     match wallet.save() {
-        Ok(_) => println!("New wallet saved to {}.", path.display()),
+        Ok(_) => println!("New wallet saved to {}.", wallet_path.display()),
         Err(e) => println!("Error saving wallet: {}", e)
     };
 }

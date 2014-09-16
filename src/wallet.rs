@@ -6,6 +6,7 @@ use openssl;
 use serialize::hex::{ToHex, FromHex};
 
 use std::io::{File, BufferedReader, IoResult, IoError, OtherIoError};
+use std::io::fs::PathExtensions;
 
 use util::base58;
 use protocol::address::Address;
