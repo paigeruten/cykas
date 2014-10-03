@@ -4,6 +4,10 @@ name = "cykas"
 version = "0.0.1"
 authors = ["Jeremy Ruten <jeremy.ruten@gmail.com>"]
 
+[dependencies.num]
+
+git = "https://github.com/rust-lang/num"
+
 [dependencies.openssl]
 
 git = "https://github.com/sfackler/rust-openssl.git"

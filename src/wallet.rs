@@ -68,7 +68,7 @@ impl Wallet {
         let mut iv = None;
         let mut encrypted_data = None;
 
-        for (key, values) in parsed.move_iter() {
+        for (key, values) in parsed.into_iter() {
             if key.as_slice().starts_with("!") {
                 if key.as_slice() == "!salt" {
                     salt = values.concat().as_slice().from_hex().ok();
@@ -138,10 +138,10 @@ impl Wallet {
                                           iv.unwrap().as_slice(),
                                           encrypted_data.unwrap().as_slice());
 
-        let mut private_keys_iter = private_keys.move_iter();
+        let mut private_keys_iter = private_keys.into_iter();
 
-        for &(_, ref mut entries) in wallet.entries.mut_iter() {
-            for entry in entries.mut_iter() {
+        for &(_, ref mut entries) in wallet.entries.iter_mut() {
+            for entry in entries.iter_mut() {
                 let private_key = private_keys_iter.next();
 
                 if private_key.is_none() {

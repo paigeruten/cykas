@@ -23,6 +23,7 @@ struct BIGNUM;
 struct BN_CTX;
 
 #[allow(non_camel_case_types)]
+#[allow(dead_code)]
 #[repr(C)]
 enum point_conversion_form_t {
     POINT_CONVERSION_COMPRESSED = 2,

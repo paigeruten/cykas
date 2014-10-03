@@ -28,11 +28,14 @@ pub fn encode(data: &[u8]) -> String {
     // First push a '1' character for each leading zero byte we wanted to
     // preserve.
     for _ in range(0, num_zeroes) {
-        result.push_char('1');
+        result.push('1');
     }
 
-    // Append the base-58 after that, and return the result.
-    result.append(base58.as_slice())
+    // Append the base-58 after that.
+    result.push_str(base58.as_slice());
+
+    // Return the result.
+    result
 }
 
 /// Decode a base-58 string into a vector of bytes, preserving leading zero
@@ -72,7 +75,7 @@ pub fn simple_encode(mut n: BigUint) -> String {
     let fifty_eight = 58u.to_biguint().unwrap();
     while !n.is_zero() {
         let (rest_of_n, digit) = n.div_rem(&fifty_eight);
-        result.push_char(ALPHABET.char_at(digit.to_uint().unwrap()));
+        result.push(ALPHABET.char_at(digit.to_uint().unwrap()));
         n = rest_of_n;
     }
 

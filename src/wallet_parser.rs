@@ -15,7 +15,7 @@ enum Token {
 /// to vectors of Strings. Returns an IoError on failure.
 pub fn parse<T: Buffer>(input: &mut T) -> IoResult<Vec<(String, Vec<String>)>> {
     let tokens = try!(tokenize(input));
-    let mut tokens_iter = tokens.move_iter();
+    let mut tokens_iter = tokens.into_iter();
     let mut result: Vec<(String, Vec<String>)> = Vec::new();
 
     for token in tokens_iter {
@@ -80,7 +80,7 @@ fn tokenize<T: Buffer>(input: &mut T) -> IoResult<Vec<Token>> {
         } else if ch.is_alphanumeric() || ch == '_' || ch == '!' {
             if current_token.is_some() {
                 let mut token_string = current_token.take().unwrap();
-                token_string.push_char(ch);
+                token_string.push(ch);
                 current_token = Some(token_string);
             } else {
                 current_token = Some(ch.to_string());
