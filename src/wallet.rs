@@ -48,7 +48,7 @@ impl Wallet {
     /// that Path already exists, so as not to overwrite it.
     pub fn new(path: &Path) -> Wallet {
         if path.exists() {
-            fail!("Wallet file '{}' already exists, will not overwrite!", path.display());
+            panic!("Wallet file '{}' already exists, will not overwrite!", path.display());
         }
 
         Wallet { path: path.clone(), entries: Vec::new() }
