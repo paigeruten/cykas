@@ -1,7 +1,7 @@
 //! Bitcoin Wallet Import Format (WIF) encoding, decoding, and checking.
 
 use openssl;
-use openssl::crypto::hash::SHA256;
+use openssl::crypto::hash::HashType::SHA256;
 
 // The length of checksums used in the Wallet Import Format.
 static CHECKSUM_LENGTH: uint = 4;

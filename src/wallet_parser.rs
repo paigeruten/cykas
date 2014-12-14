@@ -7,8 +7,8 @@ use std::io::{Buffer, IoResult, IoError, OtherIoError};
 // and values, both Strings.
 #[deriving(PartialEq,Show)]
 enum Token {
-    KeyToken(String),
-    ValueToken(String)
+    Key(String),
+    Value(String)
 }
 
 /// Tokenizes the given Buffer and parses that into a Vec that maps String keys
@@ -20,7 +20,7 @@ pub fn parse<T: Buffer>(input: &mut T) -> IoResult<Vec<(String, Vec<String>)>> {
 
     for token in tokens_iter {
         match token {
-            KeyToken(key) => {
+            Token::Key(key) => {
                 if result.iter().any(|&(ref alias, _)| *alias == key) {
                     return Err(IoError {
                         kind: OtherIoError,
@@ -31,7 +31,7 @@ pub fn parse<T: Buffer>(input: &mut T) -> IoResult<Vec<(String, Vec<String>)>> {
 
                 result.push((key, Vec::new()));
             }
-            ValueToken(val) => {
+            Token::Value(val) => {
                 if result.is_empty() {
                     return Err(IoError {
                         kind: OtherIoError,
@@ -41,7 +41,7 @@ pub fn parse<T: Buffer>(input: &mut T) -> IoResult<Vec<(String, Vec<String>)>> {
                 }
 
                 let index_last = result.len() - 1;
-                let &(_, ref mut values) = result.get_mut(index_last);
+                let &(_, ref mut values) = result.index_mut(&index_last);
                 values.push(val);
             }
         }
@@ -71,11 +71,11 @@ fn tokenize<T: Buffer>(input: &mut T) -> IoResult<Vec<Token>> {
         if ch == '#' {
             in_comment = true;
             if current_token.is_some() {
-                tokens.push(ValueToken(current_token.take().unwrap()));
+                tokens.push(Token::Value(current_token.take().unwrap()));
             }
         } else if ch.is_whitespace() {
             if current_token.is_some() {
-                tokens.push(ValueToken(current_token.take().unwrap()));
+                tokens.push(Token::Value(current_token.take().unwrap()));
             }
         } else if ch.is_alphanumeric() || ch == '_' || ch == '!' {
             if current_token.is_some() {
@@ -86,7 +86,7 @@ fn tokenize<T: Buffer>(input: &mut T) -> IoResult<Vec<Token>> {
                 current_token = Some(ch.to_string());
             }
         } else if ch == ':' && current_token.is_some() {
-            tokens.push(KeyToken(current_token.take().unwrap()));
+            tokens.push(Token::Key(current_token.take().unwrap()));
         } else {
             return Err(IoError {
                 kind: OtherIoError,
@@ -97,7 +97,7 @@ fn tokenize<T: Buffer>(input: &mut T) -> IoResult<Vec<Token>> {
     }
 
     if current_token.is_some() {
-        tokens.push(ValueToken(current_token.take().unwrap()));
+        tokens.push(Token::Value(current_token.take().unwrap()));
     }
 
     Ok(tokens)
@@ -107,7 +107,7 @@ fn tokenize<T: Buffer>(input: &mut T) -> IoResult<Vec<Token>> {
 mod tests {
     use std::io::{MemReader, OtherIoError};
 
-    use super::{KeyToken, ValueToken};
+    use super::Token;
     use super::{parse, tokenize};
 
     #[test]
@@ -149,16 +149,16 @@ mod tests {
         let mut buf = MemReader::new(b" 0 a: 1 2 3 !b: 4\n5# #c: 6\nd:7".to_vec());
         let tokens = tokenize(&mut buf);
         assert!(tokens.is_ok());
-        assert_eq!(tokens.unwrap(), vec![ValueToken("0".to_string()),
-                                         KeyToken("a".to_string()),
-                                         ValueToken("1".to_string()),
-                                         ValueToken("2".to_string()),
-                                         ValueToken("3".to_string()),
-                                         KeyToken("!b".to_string()),
-                                         ValueToken("4".to_string()),
-                                         ValueToken("5".to_string()),
-                                         KeyToken("d".to_string()),
-                                         ValueToken("7".to_string())]);
+        assert_eq!(tokens.unwrap(), vec![Token::Value("0".to_string()),
+                                         Token::Key("a".to_string()),
+                                         Token::Value("1".to_string()),
+                                         Token::Value("2".to_string()),
+                                         Token::Value("3".to_string()),
+                                         Token::Key("!b".to_string()),
+                                         Token::Value("4".to_string()),
+                                         Token::Value("5".to_string()),
+                                         Token::Key("d".to_string()),
+                                         Token::Value("7".to_string())]);
     }
 
     #[test]

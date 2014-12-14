@@ -1,7 +1,7 @@
 //! Bitcoin address representation.
 
 use openssl;
-use openssl::crypto::hash::{SHA256, RIPEMD160};
+use openssl::crypto::hash::HashType::{SHA256, RIPEMD160};
 
 use util::wif;
 use protocol::public_key::PublicKey;

@@ -178,30 +178,31 @@ impl Wallet {
         let (salt, iv, encrypted_data) = self.encrypt();
 
         let mut file = try!(File::create(&self.path));
+        let f = &mut file;
 
         for &(ref alias, ref entries) in self.entries.iter() {
-            try!(writeln!(file, "{}:", alias));
+            try!(writeln!(f, "{}:", alias));
             for entry in entries.iter() {
-                try!(writeln!(file, "  {}", base58::encode(entry.address.get_data())));
+                try!(writeln!(f, "  {}", base58::encode(entry.address.get_data())));
             }
         }
 
-        try!(writeln!(file, ""));
-        try!(writeln!(file, "# Private key data encrypted with AES-256-CBC using"));
-        try!(writeln!(file, "# PBKDF2-HMAC-SHA1 with 4000 iterations and the"));
-        try!(writeln!(file, "# following salt and iv:"));
-        try!(writeln!(file, "!salt: {}", salt.as_slice().to_hex()));
-        try!(writeln!(file, "!iv: {}", iv.as_slice().to_hex()));
-        try!(writeln!(file, ""));
-        try!(writeln!(file, "# The decrypted data consists of concatenated 32-byte"));
-        try!(writeln!(file, "# private keys in the same order as the addresses are"));
-        try!(writeln!(file, "# are listed in this file."));
-        try!(writeln!(file, "!encrypted_data:"));
+        try!(writeln!(f, ""));
+        try!(writeln!(f, "# Private key data encrypted with AES-256-CBC using"));
+        try!(writeln!(f, "# PBKDF2-HMAC-SHA1 with {} iterations and the", PKCS5_ITERATIONS));
+        try!(writeln!(f, "# following salt and iv:"));
+        try!(writeln!(f, "!salt: {}", salt.as_slice().to_hex()));
+        try!(writeln!(f, "!iv: {}", iv.as_slice().to_hex()));
+        try!(writeln!(f, ""));
+        try!(writeln!(f, "# The decrypted data consists of concatenated 32-byte"));
+        try!(writeln!(f, "# private keys in the same order as the addresses are"));
+        try!(writeln!(f, "# are listed in this file."));
+        try!(writeln!(f, "!encrypted_data:"));
 
         for chunk in encrypted_data.as_slice().chunks(38) {
-            try!(writeln!(file, "  {}", chunk.to_hex()));
+            try!(writeln!(f, "  {}", chunk.to_hex()));
         }
-        try!(writeln!(file, ""));
+        try!(writeln!(f, ""));
 
         Ok(())
     }
@@ -224,7 +225,7 @@ impl Wallet {
         }
 
         let ciphertext = openssl::crypto::symm::encrypt(
-            openssl::crypto::symm::AES_256_CBC,
+            openssl::crypto::symm::Type::AES_256_CBC,
             key.as_slice(),
             iv.clone(),
             private_data.as_slice()
@@ -242,7 +243,7 @@ impl Wallet {
         assert_eq!(iv.len(), AES_IV_LENGTH); // TODO: handle error.
 
         let plaintext = openssl::crypto::symm::decrypt(
-            openssl::crypto::symm::AES_256_CBC,
+            openssl::crypto::symm::Type::AES_256_CBC,
             key.as_slice(), iv.to_vec(), ciphertext
         );
 
@@ -271,7 +272,7 @@ impl Wallet {
         let index = self.entries.iter().position(|&(ref key, _)| key.as_slice() == alias);
         match index {
             Some(idx) => {
-                let &(_, ref mut values) = self.entries.get_mut(idx);
+                let &(_, ref mut values) = self.entries.index_mut(&idx);
                 values.push_all(entries.as_slice());
             },
             None => {
